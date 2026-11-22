@@ -6767,7 +6767,7 @@ export const en: Messages = {
     /** One team format on the Arena's card: its size and minutes. */
     arenaFormat: (size, minutes) => `${size}v${size} (${minutes} min)`,
     blurbs: {
-      kids: 'Click the game once, then move your mouse. Arrow keys work too. Attacks fire on their own!',
+      kids: 'Click the game to capture your mouse. Move it to change direction. Press Esc to release it. Arrow keys work too. Attacks fire on their own!',
       survivors: 'Survive the hordes to the end',
       legends: 'Play as a legendary',
       challenge: 'The same Pokémon for everyone',
