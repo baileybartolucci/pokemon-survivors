@@ -691,7 +691,7 @@ const FLEE_SPEED = 260
  */
 export const chaseOffBosses = (g: Game, at: number) => {
   for (const e of g.enemies) {
-    if (!e.boss || e.dying >= 0 || !fleesFrom(e.kind, at)) continue
+    if (!e.boss || e.dying >= 0 || !fleesFrom(e.kind, at, g.kids)) continue
     const p = nearestPlayer(g, e.x, e.y)
     const d = dirTo(p.x, p.y, e.x, e.y)
     e.dying = 0
@@ -727,6 +727,11 @@ const enrage = (g: Game, e: Enemy) => {
   g.events.push({ kind: 'enrage', enemy: e.kind })
 }
 
+const KIDS_BOSS_PATTERNS: Partial<Record<EnemyId, readonly BossPattern[]>> = {
+  onix: [{ kind: 'strikes', every: 6, target: 'player', count: 1, spread: 0, radius: 18, delay: 1.5, damage: 10, visual: 'rock' }],
+  mewtwo: [{ kind: 'strikes', every: 5, target: 'player', count: 1, spread: 0, radius: 22, delay: 1.5, damage: 16, visual: 'psychic' }],
+}
+
 /**
  * Ticks every boss's attack patterns. Bosses only attack once they're close
  * enough to be seen. Wave bosses also swap stance (only the live patterns count
@@ -740,8 +745,8 @@ export const updateBosses = (g: Game, tick: number) => {
   for (const e of g.enemies) {
     // A roaming lake legend runs, it doesn't fight (its phases are Hoopa's rings', `data/rush.ts`).
     if (e.dying >= 0 || e.behavior.kind === 'roam') continue
-    const phases = phasesOf(e.kind)
-    if (e.fight === null && (phases || fightsInStances(e.kind))) {
+    const phases = g.kids ? null : phasesOf(e.kind)
+    if (!g.kids && e.fight === null && (phases || fightsInStances(e.kind))) {
       e.fight = createFight(g.rng, g.difficulty, { x: e.x, y: e.y })
       // The first phase is never entered (`enterPhase`), so its ultimate's clock starts here.
       if (phases?.[0]?.ultimate) e.fight.ultLeft = phases[0].ultimate.first
@@ -769,7 +774,7 @@ export const updateBosses = (g: Game, tick: number) => {
         continue
       }
     }
-    const patterns = patternsOf(e.kind, fight)
+    const patterns = g.kids ? KIDS_BOSS_PATTERNS[e.kind] : patternsOf(e.kind, fight)
     if (!patterns) continue
     if (fight && fightsInStances(e.kind) && shouldEnrage(fight, e.hp, e.maxHp)) enrage(g, e)
     if (fight) {

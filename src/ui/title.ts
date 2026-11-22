@@ -8,6 +8,7 @@ import type { Input } from '../engine/input'
 import { formatTime, type Dir8 } from '../engine/math'
 import { blitPacked, blitCentered, context2d, ellipse } from '../engine/pixelart'
 import { ENEMIES } from '../data/enemies'
+import { KIDS_STARTERS } from '../data/starters'
 import { GAME_MODES, type GameModeId } from '../data/gameModes'
 import { HATCHLINGS, PLAYABLE } from '../data/hatchlings'
 import { isLegend } from '../data/legends'
@@ -132,6 +133,7 @@ export type Meadow = {
 export type TitleActions = {
   /** JOGAR on Survivors: the first run or the sign-in gate when due, then the Pokémon select, the saved partner picked. */
   play: () => void
+  kids: () => void
   /** The partner pill: the Pokémon select, straight away. */
   partner: () => void
   /** JOGAR on Lendas: the Pokémon select on its Legends tab. */
@@ -583,6 +585,7 @@ const castOf = (mode: GameModeId): Cast => {
     const own = { dex: partner.dex, shiny: playsShiny(save, save.partner), x: cosmog ? -10 : 0, dir: 0 } as const satisfies Figure
     return { figures: cosmog ? [own, figure(COSMOG_DEX[cosmog], 26, 7)] : [own] }
   }
+  if (mode === 'kids') return { figures: KIDS_STARTERS.map((id, i) => figure(PLAYABLE[id].line[0].dex, (i - 1) * 33, 0)) }
   if (mode === 'legends') {
     const legend = isLegend(save.partner) ? partner.dex : 382
     return { figures: [figure(legend, 0, 0)] }
@@ -724,7 +727,7 @@ const TAB_IDS: readonly TabId[] = ['home', 'collection', 'plaza', 'social', 'pro
 
 /** A mode's little icon for the bar and JOGAR's world. */
 const modeIcon = (id: GameModeId) =>
-  ({ survivors: pokeballIcon(), legends: moveIcon('dragonAscent'), challenge: ribbonIcon('gold'), coop: coopIcon(), arena: arenaIcon(), dojo: itemIcon('blackBelt'), realm: realmIconUrl('wave') })[id]
+  ({ survivors: pokeballIcon(), kids: eggsIcon(), legends: moveIcon('dragonAscent'), challenge: ribbonIcon('gold'), coop: coopIcon(), arena: arenaIcon(), dojo: itemIcon('blackBelt'), realm: realmIconUrl('wave') })[id]
 
 /** The name-only line under JOGAR: the mode and the first thing it says about itself. */
 const playLine = (id: GameModeId, facts: ModeFacts) => [t().gameModes.names[id], facts.tags.at(0)?.text].filter(Boolean).join(' · ')
@@ -768,9 +771,10 @@ export const titleScreen = (
   })
 
   const prompt = h('p', { class: 'press-start blink' }, h('span', { class: 'keys-only' }, m.pressKeys), h('span', { class: 'touch-only' }, m.pressTouch))
-  // The top bar waits for the lobby: the intro is just the logo and "press start".
+  // The top bar waits for the lobby.
   let bar: HTMLElement = h('span', { class: 'hidden' })
-  const intro = shellBody(h('h1', { class: 'sr-only' }, 'Pokémon Survivors'), logo, prompt)
+  const kidsStart = h('button', { class: 'btn', type: 'button' }, t().gameModes.names.kids, h('span', { class: 'key-hint' }, 'K'))
+  const intro = shellBody(h('h1', { class: 'sr-only' }, 'Pokémon Survivors'), logo, prompt, kidsStart)
   const wipeEl = h('div', { class: 'lobby-wipe hidden', 'aria-hidden': 'true' })
   // The Noite das Bruxas dresses the lobby in orange and purple (`style.css`).
   const el = h('div', { class: halloweenToday() ? 'screen shell title-home haunted' : 'screen shell title-home' }, bar, intro, wipeEl)
@@ -947,6 +951,7 @@ export const titleScreen = (
   /** JOGAR, by the selected mode. */
   const playRuns: Record<GameModeId, () => void> = {
     survivors: actions.play,
+    kids: actions.kids,
     legends: runs.legends,
     challenge: runs.challenge,
     coop: runs.coop,
@@ -967,7 +972,7 @@ export const titleScreen = (
     select(key, false)
     playSfx('select')
     if (key !== 'play') lobbyPress(key)
-    else if (mode !== 'survivors') lobbyPress(mode)
+    else if (mode !== 'survivors' && mode !== 'kids') lobbyPress(mode)
     later(() => {
       pressing = false
       runs[key]()
@@ -1624,15 +1629,23 @@ export const titleScreen = (
 
   if (opts.intro) {
     // Any key, pad button or tap. `later` keeps that same press from also pressing JOGAR.
-    const start = () => {
+    const start = (action: () => void) => {
       if (!offIntro) return
       playSfx('select')
-      later(actions.start ?? enterLobby)
+      later(action)
       offIntro()
       offIntro = null
     }
-    const offKey = input.onKey(start)
-    const onTap = (e: Event) => e.target instanceof Element && !e.target.closest('a') && start()
+    const standardStart = actions.start ?? enterLobby
+    const offKey = input.onKey((key) => {
+      if (key === 'Tab') return
+      if (key === 'KeyK' || (document.activeElement === kidsStart && (key === 'Enter' || key === 'Space'))) start(actions.kids)
+      else start(standardStart)
+    })
+    const onTap = (e: Event) => {
+      if (!(e.target instanceof Element) || e.target.closest('a')) return
+      start(kidsStart.contains(e.target) ? actions.kids : standardStart)
+    }
     el.addEventListener('click', onTap)
     offIntro = () => (offKey(), el.removeEventListener('click', onTap))
   } else {

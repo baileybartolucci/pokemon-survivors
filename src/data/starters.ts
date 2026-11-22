@@ -3,6 +3,11 @@ import type { StatDelta } from '../game/stats'
 import type { EvoItemId } from './shop'
 import type { PokeType } from './types'
 
+export const KIDS_STARTERS = ['treecko', 'torchic', 'mudkip'] as const
+export type KidsStarter = (typeof KIDS_STARTERS)[number]
+
+export const KIDS_EVOLUTIONS = [{ at: 120, level: 5 }, { at: 210, level: 9 }] as const
+
 export type EvolutionStage = {
   dex: number
   name: string

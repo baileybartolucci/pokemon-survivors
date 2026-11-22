@@ -14,7 +14,7 @@ describe('parseLobbyMode', () => {
 
 describe('the lobby\'s modes', () => {
   it('hides what this build has no action for, in the bar\'s order', () => {
-    expect(shownModes(['coop', 'realm'])).toEqual(['survivors', 'legends', 'challenge', 'arena', 'dojo'])
+    expect(shownModes(['coop', 'realm'])).toEqual(['survivors', 'kids', 'legends', 'challenge', 'arena', 'dojo'])
   })
 
   it('falls back to Survivors when the saved mode is hidden', () => {

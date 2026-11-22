@@ -42,7 +42,7 @@ import { ENEMIES, type EnemyDef, type EnemyId } from './data/enemies'
 import { ITEMS } from './data/items'
 import type { AchievementId } from './data/achievements'
 import type { TraitId } from './data/traits'
-import { REGIONS, STARTER_IDS, STARTERS, type StarterId } from './data/starters'
+import { REGIONS, STARTER_IDS, STARTERS, type KidsStarter, type StarterId } from './data/starters'
 import { nextIsOfficial } from './game/attempt'
 import { challengeStart, type Challenge } from './game/challenge'
 import { HATCHLING_IDS, HATCHLINGS, PLAYABLE, PLAYABLE_IDS, type HatchlingId, type PlayableId } from './data/hatchlings'
@@ -95,7 +95,7 @@ import { NO_RANKS } from './game/meta'
 import { COSMOG_DEX, PATH_FORMS, PATH_IDS, TOWERS, TRIALS, type TrialId } from './data/legendPaths'
 import { clearTrial, cosmogStage, giantAwake, kubfuJoined, openForms, ruinsRun, templeRun } from './game/legendPaths'
 import { FIELD, FIELD_MISSION_KINDS, TOGEPI_DEX, type FieldMissionKind } from './game/fieldMissionRules'
-import { advancePhase, banishOffer, chooseOffer, createGame, offerAbilities, playerDex, rerollOffers, skipLevelUp, step, takeBerryLevelUps } from './game/game'
+import { advancePhase, banishOffer, chooseOffer, createGame, createKidsGame, offerAbilities, playerDex, rerollOffers, skipLevelUp, step, takeBerryLevelUps } from './game/game'
 import { applyBuild, setDummies, setLens, startTraining } from './game/training'
 import { buildOf } from './game/builds'
 import { TRAINING } from './data/training'
@@ -237,7 +237,7 @@ import { isSettingsOpen, openSettings, settings, toggleMute } from './ui/setting
 import { mapEventFeedback } from './ui/mapEvents'
 import { runShare, sharePreview, trainerShare } from './ui/share'
 import type { ShopPlaza, VisitorShelf } from './ui/shop'
-import { starterSelect } from './ui/starterSelect'
+import { kidsStarterSelect, starterSelect } from './ui/starterSelect'
 import { firstRunDue, guestChosenAt, guestGateDue, hostApp, onboardingStep, onOnboarding, rememberGuest, savePromptDue } from './onboarding'
 import { takeHandoff } from './handoff'
 import { firstRunTip, hideInAppHint, saveCard, showInAppHint } from './ui/onboarding'
@@ -848,6 +848,7 @@ const showTitle = (opts: { intro?: boolean; focus?: LobbyFocus; shop?: ShopTrip;
   setScreen(
     titleScreen(ui, input, {
       play: () => playFromLobby(),
+      kids: () => ((pressedStart = true), saveLobbyMode('kids'), showKidsMenu()),
       partner: () => showMenu(),
       legends: () => showMenu(loadSave().partner, 'legends'),
       modes: (focus, shown) => openGameModes(ui, input, { current: loadLobbyMode(), shown, onPick: (id) => (saveLobbyMode(id), showTitle({ focus: 'play' })), close: () => showTitle({ focus }) }),
@@ -1074,6 +1075,11 @@ const showPlayGate = () => {
       signingIn: () => firstGate('signIn'),
     }),
   )
+}
+
+const showKidsMenu = () => {
+  endRun()
+  setScreen(kidsStarterSelect(ui, input, (id) => void startKidsRun(id), () => showTitle({ focus: 'play' })))
 }
 
 /** The partner select; its top bar leads back to the title, to the Poké Mart (the wallet) and to Settings, which come back to it on the same Pokémon. */
@@ -1414,6 +1420,7 @@ const errorContext = (): ErrorContext => {
   const r = run
   if (!r) return { in_run: false }
   const g = r.game
+  if (g.kids) return { in_run: true, mode: 'kids', phase: g.phase, minute: Math.floor(g.time / 60) }
   return { in_run: true, starter: localPlayer(g).starter, phase: g.phase, minute: Math.floor(g.time / 60), tick: r.recorder.tick, replay: JSON.stringify(r.recorder.replay) }
 }
 
@@ -1423,14 +1430,15 @@ const endRun = () => {
   if (run.tutorial) return endTutorial(run, run.tutorial)
   if (run.training) return endDojo(run, run.training)
   if (run.rush) return endRushRun(run)
-  bankRun(run, wonRun(run.game))
-  reportRun(run)
-  rankRun(run)
-  // Only a quit run can complete something here: the results screen already showed the rest.
-  // The toast waits for the next screen, so it lands on top of it.
-  const record = recordProgress(run)
-  later(() => progressToast(ui, record))
-  void syncSave()
+  if (!run.game.kids) {
+    bankRun(run, wonRun(run.game))
+    reportRun(run)
+    rankRun(run)
+    // Only a quit run can complete something here: the results screen already showed the rest.
+    const record = recordProgress(run)
+    later(() => progressToast(ui, record))
+    void syncSave()
+  }
   run.overlay?.dispose()
   run.closeText?.()
   run.hud.dispose()
@@ -1587,7 +1595,7 @@ const firstFrameDrawn = () => {
   firstFrameDue = false
   launchStep('running')
   // The training run isn't the first run: the flow marks its own steps.
-  if (!run?.tutorial) firstStep('firstFrame')
+  if (!run?.tutorial && !run?.game.kids) firstStep('firstFrame')
 }
 
 /** The `ReplayStart` field a run with `starter` takes from the save's Shadows: nothing for the plain one, so its replay stays as it was. */
@@ -1640,6 +1648,64 @@ const startRun = async (starter: PlayableId, daily: ChallengeRun | null = null) 
     // A launch that didn't end in a run (a newer build reloading) leaves no watch behind.
     if (!run) launchStep(null)
   } finally {
+    launching = false
+  }
+}
+
+const startKidsRun = async (starter: KidsStarter) => {
+  if (launching) return
+  launching = true
+  setScreen(null)
+  endRun()
+  const loading = loadingScreen()
+  ui.append(loading)
+  try {
+    const seed = Date.now()
+    const game = createKidsGame(starter, view, seed)
+    const me = localPlayer(game)
+    const dexes = [...new Set([
+      ...game.roster.stages.flatMap((pool) => pool.map(([id]) => ENEMIES[id].dex)),
+      ...game.roster.events.flatMap((id) => id ? [ENEMIES[id].dex] : []),
+    ])]
+    await loadRunSheets(familySheets(starter, me.shiny), dexes)
+    const start: ReplayStart = { seed, starter, difficulty: game.difficulty, ranks: NO_RANKS, shiny: me.shiny, luckyEgg: false, outbreak: null, halloween: false, bag: [], view: { ...view } }
+    run = {
+      game,
+      hud: runHud(game),
+      overlay: null,
+      shown: null,
+      closeText: null,
+      paid: 0,
+      candies: 0,
+      nuts: 0,
+      mythical: null,
+      reported: true,
+      missionsBefore: [],
+      recorded: null,
+      unlocked: [],
+      reward: 0,
+      rewardEggs: 0,
+      rewardItems: [],
+      hatchery: { steps: 0, eggs: 0 },
+      convertedEggs: { full: [], cap: [] },
+      dexBase: loadSave().dex,
+      recorder: startRecording(start),
+      ranked: null,
+      rank: null,
+      bestBefore: 0,
+      challenge: null,
+      companion: null,
+      sprites: { needs: [], always: [...familyDex(starter), ...dexes] },
+      coop: null,
+      training: null,
+      rush: null,
+    }
+    syncSprites()
+    resetMemoryPeaks()
+    resetRunFrames(frames)
+    awaitFirstFrame()
+  } finally {
+    loading.remove()
     launching = false
   }
 }
@@ -2173,7 +2239,7 @@ const endDojo = (r: Run, dojo: DojoRun) => {
 
 /** The run's HUD; `menu`: its pause button opens a menu over a run that goes on (co-op). */
 const runHud = (game: Game, onPause: () => void = () => game.phase === 'playing' && (game.phase = 'paused'), menu = false) => {
-  const hud = createHud(ui, queueSpecial, queueMega, queueTera, queueLunge, onPause, () => requestAnimationFrame(syncMarkerInsets), input.isHeld, menu)
+  const hud = createHud(ui, queueSpecial, queueMega, queueTera, queueLunge, onPause, () => requestAnimationFrame(syncMarkerInsets), input.isHeld, menu, game.kids)
   requestAnimationFrame(syncMarkerInsets)
   return hud
 }
@@ -2313,7 +2379,7 @@ const syncOverlay = (r: Run) => {
         // Only from the pause: a late press must never flip a level-up to playing (unrecorded) or end the run under it.
         // A fresh canvas too: the player's way out of a world that stopped drawing behind the pause (`freshCanvas`).
         resume: () => g.phase === 'paused' && ((g.phase = 'playing'), freshCanvas()),
-        quit: () => g.phase === 'paused' && (r.tutorial ? r.tutorial.skip() : r.training ? leaveDojo() : r.rush ? leaveRush() : afterRun(() => showMenu())),
+        quit: () => g.phase === 'paused' && (r.tutorial ? r.tutorial.skip() : r.training ? leaveDojo() : r.rush ? leaveRush() : g.kids ? showKidsMenu() : afterRun(() => showMenu())),
         settings: (back) => runSettings(r, back),
         report: bugReportsEnabled ? (back) => bugReportForm(ui, input, back) : null,
         drop,
@@ -2321,6 +2387,10 @@ const syncOverlay = (r: Run) => {
       break
     case 'gameover':
     case 'victory':
+      if (g.kids) {
+        r.overlay = results(ui, input, g, () => void startKidsRun(me.starter as KidsStarter), showKidsMenu, () => showTitle({ focus: 'play' }))
+        break
+      }
       if (r.rush) {
         const rush = r.rush
         rush.banked ??= bankRush(g, rush)
@@ -2605,7 +2675,7 @@ const handleEvent = (r: Run, e: GameEvent) => {
     case 'boss': {
       const def: EnemyDef = ENEMIES[e.enemy]
       // A wave legendary's cry and title card come with its entrance (`legendTitle`).
-      if (isWaveLegend(e.enemy)) return
+      if (!g.kids && isWaveLegend(e.enemy)) return
       if (def.legendary) {
         playSfx('legendary')
         playCry(cryUrl(def.dex), 0.7)
@@ -2836,6 +2906,7 @@ const handleEvent = (r: Run, e: GameEvent) => {
       playSfx('evolve')
       return news(h('span', { class: 'item-toast' }, shopIcon('maxRevive'), rich(t().toast.maxRevive)), 3400)
     case 'gameover':
+      if (g.kids) return playSfx('gameOver')
       bankRun(r, true)
       recordProgress(r)
       reportRun(r, e)
@@ -2843,6 +2914,7 @@ const handleEvent = (r: Run, e: GameEvent) => {
       playSfx('gameOver')
       return playCry(playerCry(g))
     case 'victory':
+      if (g.kids) return playSfx('evolve')
       bankRun(r, true)
       recordProgress(r)
       rankRun(r)

@@ -1,3 +1,4 @@
+import { KIDS_EVOLUTIONS } from '../data/starters'
 import { retain } from '../engine/math'
 import { seasonKitDeltas } from './seasonOneKitRules'
 import { kitBDeltas } from './gaKitBRules'
@@ -51,15 +52,28 @@ const UPGRADE_WEIGHT = 1.3
 export const xpFor = (level: number) =>
   Math.floor(5 + (level - 1) * 9 + Math.max(0, level - 20) * 6 + Math.max(0, level - 40) * 10)
 
-export const gainXp = (g: Game, amount: number, growth = g.player.stats.growth) => {
+export const gainXp = (g: Game, amount: number, growth = g.player.stats.growth) =>
+  addXp(g, amount * growth * (g.kids ? 2 : 1))
+
+const addXp = (g: Game, amount: number) => {
   const p = g.player
-  p.xp += amount * growth
+  p.xp += amount
   while (p.xp >= p.xpNext) {
     p.xp -= p.xpNext
     p.level++
     p.xpNext = xpFor(p.level)
     g.player.pendingLevelUps++
   }
+}
+
+/** Keep both evolutions in reach even if the player misses dropped XP. */
+export const paceKidsEvolution = (g: Game) => {
+  const p = g.player
+  const milestone = KIDS_EVOLUTIONS[p.stage]
+  if (!milestone || g.time < milestone.at || p.level >= milestone.level) return
+  let missing = -p.xp
+  for (let level = p.level; level < milestone.level; level++) missing += xpFor(level)
+  addXp(g, Math.ceil(missing))
 }
 
 /**
@@ -424,6 +438,10 @@ export const pendingEvolution = (g: Game) => {
   const next = formAt(p.starter, p.branch, p.stage + 1)
   // A branch that ends its line early (Flapple, Appletun) has nowhere further to go.
   if (next.dex === stage.dex) return null
+  if (g.kids) {
+    const milestone = KIDS_EVOLUTIONS[p.stage]
+    return milestone && g.time >= milestone.at && p.level >= milestone.level ? { from: stage.dex, to: next.dex } : null
+  }
   // The Arena evolves at its format's own levels (`FormatRules.evolveAt`).
   const at = p.versus && g.versus ? versusEvolveAt(g.versus, p.stage) : stage.evolveAt
   // Gimmighoul's line evolves on its coins too (`rocketEvolves`).

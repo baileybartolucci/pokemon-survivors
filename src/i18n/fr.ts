@@ -6757,10 +6757,13 @@ export const fr: Messages = {
   gameModes: {
     title: 'MODES DE JEU',
     close: 'Fermer',
-    names: { survivors: 'Survivors', legends: 'Légendes', challenge: 'Défi du jour', coop: 'Coop', arena: 'Arène', dojo: 'Dojo', realm: 'Poké Realm' },
+    kidsPick: 'Choisis un Pokémon',
+    kidsTimeUp: 'Temps écoulé !',
+    names: { survivors: 'Survivors', kids: 'Mode Enfants', legends: 'Légendes', challenge: 'Défi du jour', coop: 'Coop', arena: 'Arène', dojo: 'Dojo', realm: 'Poké Realm' },
     /** One team format on the Arena's card: its size and minutes. */
     arenaFormat: (size, minutes) => `${size}v${size} (${minutes} min)`,
     blurbs: {
+      kids: 'Utilise les flèches pour bouger. Les attaques sont automatiques !',
       survivors: 'Survis aux hordes jusqu’au bout',
       legends: 'Joue un légendaire',
       challenge: 'Le même Pokémon pour tous',

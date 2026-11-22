@@ -6757,10 +6757,13 @@ export const zh: Messages = {
   gameModes: {
     title: '遊戲模式',
     close: '關閉',
-    names: { survivors: 'Survivors', legends: '傳說', challenge: '每日挑戰', coop: '合作', arena: '競技場', dojo: '道場', realm: 'Poké Realm' },
+    kidsPick: '選擇一隻寶可夢',
+    kidsTimeUp: '時間到！',
+    names: { survivors: 'Survivors', kids: '兒童模式', legends: '傳說', challenge: '每日挑戰', coop: '合作', arena: '競技場', dojo: '道場', realm: 'Poké Realm' },
     /** One team format on the Arena's card: its size and minutes. */
     arenaFormat: (size, minutes) => `${size}v${size} (${minutes} 分鐘)`,
     blurbs: {
+      kids: '用方向鍵移動，攻擊會自動發動！',
       survivors: '在怪群中存活到最後',
       legends: '使用傳說寶可夢遊玩',
       challenge: '所有人使用同一隻寶可夢',

@@ -37,6 +37,11 @@ export const DIFFICULTIES = {
   nightmare: { enemyHp: 1.8, enemyDamage: 2, spawnRate: 1.5, enemySpeed: 1.2, ramp: 1.25, healing: 0.5, iframes: 0.3 },
 } as const satisfies Record<string, DifficultyMods>
 
+/** Kids Mode is local and uses its own tuning, outside the ranked difficulty list. */
+export const KIDS_DIFFICULTY: DifficultyMods = {
+  enemyHp: 0.6, enemyDamage: 0.3, spawnRate: 0.8, enemySpeed: 0.72, ramp: 0.8, healing: 1.5, iframes: 1.2,
+}
+
 export type Difficulty = keyof typeof DIFFICULTIES
 
 export const DIFFICULTY_IDS = Object.keys(DIFFICULTIES) as Difficulty[]

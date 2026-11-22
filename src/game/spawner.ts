@@ -1,7 +1,7 @@
 import { TAU, type Vec } from '../engine/math'
 import { chance, range, weightedPick } from '../engine/rng'
 import { ENEMIES, type EnemyDef, type EnemyId } from '../data/enemies'
-import { BOSS_FIGHT, bossCandidates, bossWaveAt, ELITE, EVENTS, FINALE, stageAt, stageIndexAt, type WaveEvent } from '../data/waves'
+import { BOSS_FIGHT, bossCandidates, bossWaveAt, ELITE, EVENTS, FINALE, KIDS_EVENTS, KIDS_STAGES, STAGES, stageAt, stageIndexAt, type WaveEvent } from '../data/waves'
 import { bossReach, chaseOffBosses, finaleEntrance } from './bosses'
 import { mythicalChance } from './mythicalHunt'
 import { runMods } from './legend'
@@ -81,14 +81,16 @@ export const spawnSwarm = (g: Game, species: EnemyId, count: number, weight = 1)
  */
 export const spawnWaveBoss = (g: Game, enemy: EnemyId, at: number, finale = false, where: Vec | null = null) => {
   chaseOffBosses(g, at)
-  const pos = where ?? offscreen(g)
+  const pos = where ?? (g.kids
+    ? { x: g.player.x + Math.min(80, g.view.w * 0.3), y: g.player.y }
+    : offscreen(g))
   const boss = spawnEnemy(g, enemy, pos.x, pos.y)
   const def: EnemyDef = ENEMIES[enemy]
   g.bossId = boss.id
   setScreenShake(g, def.legendary ? 9 : 5, 'team')
   if (finale) finaleEntrance(g)
   g.events.push({ kind: 'boss', enemy })
-  legendEntrance(g, boss)
+  if (!g.kids) legendEntrance(g, boss)
   return boss
 }
 
@@ -131,15 +133,16 @@ const CALM = { rate: 1, max: 1 } as const
 const pressureOf = (g: Game, finale: boolean, bossNear: boolean) =>
   g.endless ? endlessPressure(g.time) : finale ? FINALE : bossNear ? BOSS_FIGHT : CALM
 
-/** The regular cap a run asks for before the endless ceiling: the stage's, times the difficulty, the pressure, the tension and the team. */
-const askedCap = (g: Game, max: number, tension: number) => stageAt(g.time).max * max * runMods(g).spawnRate * tension * coopScale(g, COOP.scale.cap)
+/** The regular cap a run asks for before the endless ceiling. */
+const askedCap = (g: Game, stageMax: number, pressure: number, tension: number) =>
+  stageMax * pressure * runMods(g).spawnRate * tension * coopScale(g, COOP.scale.cap)
 
 /**
  * How many foes each endless regular spawn stands for now (`hordeWeight`, 1
  * outside endless mode). The tension leaves the cap alone in endless mode, so
  * this is the spawner's own. The endless events weigh theirs by it too.
  */
-export const endlessWeight = (g: Game) => (g.endless ? hordeWeight(askedCap(g, endlessPressure(g.time).max, 1)) : 1)
+export const endlessWeight = (g: Game) => (g.endless ? hordeWeight(askedCap(g, stageAt(g.time).max, endlessPressure(g.time).max, 1)) : 1)
 
 /**
  * A surge of the pressure director: a ring or a swarm (alternating) of a
@@ -177,10 +180,12 @@ const retireOld = (g: Game) => {
  * times fewer. In endless mode an event's flyby flock counts against the cap.
  */
 export const updateSpawner = (g: Game, dt: number) => {
-  const stage = stageAt(g.time)
-  const index = stageIndexAt(g.time)
+  const stages = g.kids ? KIDS_STAGES : STAGES
+  const index = stageIndexAt(g.time, stages)
+  const stage = stages[index]!
+  const events = g.kids ? KIDS_EVENTS : EVENTS
   const pool = g.roster.stages[index] ?? []
-  const runner = g.roster.runners[index] ?? null
+  const runner = g.kids ? null : g.roster.runners[index] ?? null
   const spit = SPITTERS[g.difficulty]
   const spitter = g.roster.spitters[index] ?? null
   const reach = bossReach(g)
@@ -193,7 +198,7 @@ export const updateSpawner = (g: Game, dt: number) => {
   for (const e of g.enemies) {
     if (e.dying >= 0) continue
     if (e.boss) {
-      if (!bossNear && g.now - e.bornAt < BOSS_FIGHT.duration && bossWaveAt(e.kind) !== null) {
+      if (!bossNear && g.now - e.bornAt < BOSS_FIGHT.duration && bossWaveAt(e.kind, g.kids) !== null) {
         bossNear = playerWithin(g, e.x, e.y, reach) !== null
       }
       continue
@@ -206,17 +211,17 @@ export const updateSpawner = (g: Game, dt: number) => {
   }
   const finale = finaleAlive(g)
   const pressure = pressureOf(g, finale, bossNear)
-  if (!finale) updateTension(g, dt)
+  if (!g.kids && !finale) updateTension(g, dt)
   const level = finale ? 0 : g.tension.level
   const peak = TENSION_PEAK[g.difficulty]
   const tension = tensionMods(level, peak, g.endless !== null)
   // Co-op: a denser horde for a bigger team (`coopScale`; exactly 1 solo). Endless: past the ceiling, heavier foes instead of more (`ENDLESS_HORDE`).
-  const want = askedCap(g, pressure.max, tension.cap)
+  const want = askedCap(g, stage.max, pressure.max, tension.cap)
   const weight = g.endless ? hordeWeight(want) : 1
   const cap = want / weight
   // Tension brings pressure, not power: the faster horde splits the same loot.
   g.tension.share = 1 / tension.rate
-  const spitting = spitter !== null && !finale && g.time >= spit.from
+  const spitting = !g.kids && spitter !== null && !finale && g.time >= spit.from
 
   if (!finale && !bossNear && !g.endless) {
     g.tension.surge += level * dt
@@ -262,7 +267,7 @@ export const updateSpawner = (g: Game, dt: number) => {
       weighSpawn(e, weight)
       e.speed *= tension.speed
       const tense = tension.elite > 0 && elites < cap * ELITE.share && chance(g.rng, tension.elite)
-      if (!finale && (eliteSpawn(regular, elites, cap) || tense)) {
+      if (!g.kids && !finale && (eliteSpawn(regular, elites, cap) || tense)) {
         makeElite(e)
         elites++
       }
@@ -277,8 +282,8 @@ export const updateSpawner = (g: Game, dt: number) => {
 
   retireOld(g)
 
-  while (g.nextEvent < EVENTS.length && EVENTS[g.nextEvent]!.at <= g.time) {
-    runEvent(g, EVENTS[g.nextEvent]!, g.nextEvent)
+  while (g.nextEvent < events.length && events[g.nextEvent]!.at <= g.time + (g.kids ? 1e-8 : 0)) {
+    runEvent(g, events[g.nextEvent]!, g.nextEvent)
     g.nextEvent++
   }
 }

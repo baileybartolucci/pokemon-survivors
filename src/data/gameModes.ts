@@ -1,10 +1,11 @@
 /**
- * The game's 7 modes, in the order the lobby's bar and the Modos de jogo screen show them. A mode is known by its
+ * The game's modes, in the order the lobby's bar and the Modos de jogo screen show them. A mode is known by its
  * `color` everywhere it appears (the kit's `--mode`, `ui/style.css`); `plate` is that color deep enough for white text, the nameplate of its card.
  * `needs: 'account'` is a mode a guest can see but only a signed-in player can play; `fresh` wears the NOVO tag.
  */
 export const GAME_MODES = {
   survivors: { color: '#e8402f', plate: '#b3261c', needs: null, fresh: false },
+  kids: { color: '#25876c', plate: '#167058', needs: null, fresh: false },
   legends: { color: '#7b55e0', plate: '#5a3bb8', needs: null, fresh: false },
   challenge: { color: '#f2b417', plate: '#b97a00', needs: null, fresh: false },
   coop: { color: '#16a596', plate: '#0e7a6f', needs: 'account', fresh: false },

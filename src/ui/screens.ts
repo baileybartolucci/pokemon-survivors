@@ -24,6 +24,7 @@ import { innateText } from './innateText'
 import { abilityIcon } from '../render/abilityArt'
 import type { Difficulty } from '../game/difficulty'
 import { EGGS, refundOf, toSteps } from '../game/eggs'
+import { KIDS_RUN_LENGTH } from '../data/waves'
 import { overtime } from '../game/endless'
 import { runEarnings, type ConvertedEggs } from '../game/meta'
 import { resolveSpecial } from '../game/special'
@@ -875,7 +876,7 @@ export const pauseMenu = (root: HTMLElement, input: Input, g: Game, actions: Pau
         radioPill(),
         coop && h('p', { class: 'pause-note' }, g.versus ? t().versus.menu.note : cm.note),
         // A match has no difficulty: everyone plays the same.
-        !g.versus && difficultyTag(g.difficulty),
+        g.kids ? h('span', { class: 'difficulty-tag' }, t().gameModes.names.kids) : !g.versus && difficultyTag(g.difficulty),
         h(
           'div',
           { class: 'pause-body' },
@@ -1075,6 +1076,7 @@ export const results = (
   const e = t().eggs
   const r = t().rifts
   const victory = g.phase === 'victory'
+  const timedOut = g.kids && g.time >= KIDS_RUN_LENGTH
   const name = playerForm(g).name
   const earned = runEarnings(g)
   const extra = overtime(g.time)
@@ -1140,15 +1142,15 @@ export const results = (
         h('img', { class: 'result-portrait', src: sprites(playerDex(g), localPlayer(g).shiny).portrait, alt: '' }),
         localPlayer(g).shiny && h('img', { class: 'shiny-badge', src: sparkleIcon(), alt: 'Shiny' }),
       ),
-      h('div', { class: 'dialog-title' }, victory ? m.victory : g.endless ? r.endlessOver(name) : m.fainted(name)),
+      h('div', { class: 'dialog-title' }, victory ? m.victory : timedOut ? t().gameModes.kidsTimeUp : g.endless ? r.endlessOver(name) : m.fainted(name)),
       extras.badge,
       localPlayer(g).shiny && h('div', { class: 'tag tag-shiny' }, m.shiny(name)),
       reaperDefeats > 0 && h('div', { class: 'tag tag-shiny' }, r.reaperDefeated(reaperDefeats)),
-      g.phase === 'gameover' && deathCause(localPlayer(g)),
+      g.phase === 'gameover' && !timedOut && deathCause(localPlayer(g)),
       h(
         'div',
         { class: 'result-stats' },
-        h('div', {}, h('span', {}, t().difficulty.label), h('b', {}, difficultyTag(g.difficulty))),
+        h('div', {}, h('span', {}, t().difficulty.label), h('b', {}, g.kids ? t().gameModes.names.kids : difficultyTag(g.difficulty))),
         h('div', {}, h('span', {}, m.time), h('b', {}, formatTime(g.time))),
         extra > 0 && h('div', {}, h('span', {}, r.overtime), h('b', {}, `+${formatTime(extra)}`)),
         h('div', {}, h('span', {}, m.level), h('b', {}, localPlayer(g).level)),
@@ -1168,7 +1170,7 @@ export const results = (
       ranking?.panel,
       extras.gems,
       goOn && h('p', { class: 'endless-hint' }, r.continueHint),
-      h(
+      !g.kids && h(
         'div',
         { class: 'earnings' },
         h('img', { src: coinIcon(2), alt: '' }),
@@ -1180,7 +1182,7 @@ export const results = (
       extras.save?.el,
       h('div', { class: 'buttons result-buttons' }, ...row),
       victory && extras.credits,
-      victory && h('a', { class: 'support-link result-support', href: supportPageUrl('victory'), target: '_blank', rel: 'noopener' }, `♥ ${m.support}`),
+      victory && !g.kids && h('a', { class: 'support-link result-support', href: supportPageUrl('victory'), target: '_blank', rel: 'noopener' }, `♥ ${m.support}`),
     ),
   )
   root.append(el)

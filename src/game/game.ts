@@ -9,7 +9,8 @@ import { isHidden } from '../data/abilities'
 import { branchesAt } from '../data/branches'
 import type { EvoItemId } from '../data/shop'
 import type { PathFormId } from '../data/legendPaths'
-import type { EvolutionStage } from '../data/starters'
+import type { EvolutionStage, KidsStarter } from '../data/starters'
+import { KIDS_EVENTS, KIDS_RUN_LENGTH, KIDS_STAGES } from '../data/waves'
 import { runBoost } from './evoItems'
 import { evolutionFreed, missingEvoItems, runEvoItems, stepOpen } from './evoGate'
 import { isStarter, PLAYABLE, type PlayableId } from '../data/hatchlings'
@@ -50,7 +51,7 @@ import { burst, shakeScreen, updateEffects } from './effects'
 import { updateEndless } from './endlessSystem'
 import { blastHorde, rebuildGrid, updateEnemies } from './enemies'
 import {
-  applyOffer, branchOffers, draftOffers, loadout, nothingToChoose, offerSubject, pendingEvolution, recomputeStats, rollOffers, shinyOfferOdds, xpFor,
+  applyOffer, branchOffers, draftOffers, loadout, nothingToChoose, offerSubject, paceKidsEvolution, pendingEvolution, recomputeStats, rollOffers, shinyOfferOdds, xpFor,
   type RollOptions,
 } from './leveling'
 import { createMapEvents, updateMapEvents } from './mapEvents'
@@ -145,6 +146,8 @@ const kitField = (starter: PlayableId) => {
   const kitH = createKitH(starter)
   return { ...(kit && { kit }), ...(kitB && { kitB }), ...(kitA && { kitA }), ...(rocket && { rocket }), ...(kitF && { kitF }), ...(kitMA && { kitMA }), ...(megaB && { megaB }), ...(kitSC && { kitSC }), ...(kitH && { kitH }) }
 }
+
+type RunOptionsWithMode = RunOptions & { kids?: true }
 
 /** What the save brings into a run besides the Poké Mart ranks. */
 export type RunOptions = {
@@ -298,7 +301,7 @@ export const createPlayer = (slot: number, setup: PlayerSetup, lucky: boolean, x
  * cast unless the shell drew it ahead (`drawRoster`). The team's best Shiny
  * Charm counts (solo, the player's).
  */
-export const createRun = (view: Game['view'], seed: number, setups: readonly PlayerSetup[], roster: Roster | undefined, options: RunOptions, coop: boolean): Game => {
+export const createRun = (view: Game['view'], seed: number, setups: readonly PlayerSetup[], roster: Roster | undefined, options: RunOptionsWithMode, coop: boolean): Game => {
   const bag = options.bag ?? []
   const rng = createRng(seed)
   // Every slot rolls, so the rng moves the same whoever plays.
@@ -309,6 +312,7 @@ export const createRun = (view: Game['view'], seed: number, setups: readonly Pla
   const legends = setups.flatMap((setup) => (isLegend(setup.starter) ? [setup.starter] : []))
   const legendRun = legends.length > 0
   const g: Game = {
+    ...(options.kids && { kids: true as const }),
     difficulty: options.difficulty ?? DEFAULT_DIFFICULTY,
     rng,
     time: 0,
@@ -332,7 +336,7 @@ export const createRun = (view: Game['view'], seed: number, setups: readonly Pla
     coins: 0,
     // A legend never meets itself among the bosses (`avoidLegends`, every seat's), nor the outbreak's basic in its horde (`LEGEND_HORDE`).
     // A co-op Legend run draws its lifted horde from the run's rng here; solo, the shell draws it ahead (`runRoster`).
-    roster: withHunt(
+    roster: options.kids ? drawRoster(rng, { stages: KIDS_STAGES, events: KIDS_EVENTS }) : withHunt(
       avoidLegends(
         withHoney(
           withOutbreak(withHaunts(roster ?? drawRoster(rng, coop && legendRun ? LEGEND_HORDE : undefined), options.halloween === true, seed, legendRun), legendRun ? null : (options.outbreak ?? null)),
@@ -422,6 +426,9 @@ export const createGame = (
   const setup: PlayerSetup = { starter, ranks, shiny: options.shiny === true, bag: options.bag ?? [], tms: options.tms, evo: options.evo, caps: options.caps, variant: options.variant, forms: options.forms }
   return createRun(view, seed, [setup], roster, options, false)
 }
+
+export const createKidsGame = (starter: KidsStarter, view: Game['view'], seed = Date.now()): Game =>
+  createRun(view, seed, [{ starter, ranks: NO_RANKS, shiny: false, bag: [] }], undefined, { kids: true }, false)
 
 /**
  * What a player brings into a co-op run: their Pokémon (a starter or a hatched
@@ -559,6 +566,10 @@ const castOwned = (g: Game, owned: OwnedMove) => {
   curseCast(g)
 }
 
+const kidsEnemyNear = (g: Game) => g.enemies.some((e) =>
+  e.dying < 0 && dm.sq(e.x - g.player.x) + dm.sq(e.y - g.player.y) <= 110 ** 2,
+)
+
 /**
  * Casts every move of the acting player whose cooldown ran out. A manual move
  * instead waits, recharged, for a `press`, and holds it while the special
@@ -567,7 +578,7 @@ const castOwned = (g: Game, owned: OwnedMove) => {
 const updateMoves = (g: Game, input: StepInput, dt: number) => {
   const p = g.player
   if (p.versus) return updateKit(g, input.casts, dt)
-  const press = input.lunge === true
+  const press = g.kids ? kidsEnemyNear(g) : input.lunge === true
   for (const owned of p.moves) {
     if (owned.echo !== undefined && owned.echo > 0) {
       owned.echo -= dt
@@ -959,7 +970,7 @@ export const stepPlayer = (g: Game, input: StepInput, dt: number) => {
   updateMega(g, !asleep && input.mega === true, dt)
   updateTera(g, !asleep && input.tera === true, dt)
   if (updateAbility(g, dt)) recomputeStats(g)
-  updateSpecial(g, !asleep && input.special, dt)
+  updateSpecial(g, !asleep && (g.kids ? kidsEnemyNear(g) : input.special), dt)
 }
 
 /** A player's moves: their kit's running state, signatures, shop TMs, legendary move, the casts and duo moves. */
@@ -1047,6 +1058,12 @@ export const stepTeam = (g: Game, inputs: readonly StepInput[], dt: number) => {
   // The run clock stops inside a rift (`clockRuns`); `now` never does.
   g.now += dt
   if (clockRuns(g)) g.time += dt
+  if (g.kids && g.time >= KIDS_RUN_LENGTH - 1e-8) {
+    g.time = KIDS_RUN_LENGTH
+    g.phase = 'gameover'
+    g.events.push({ kind: 'gameover', foe: null, hit: 'hazard' })
+    return
+  }
   // Inside a room (a rift arena, a place) the horde and the map wait outside:
   // no regular spawns, props, map events, weather or biome changes (each
   // player's biome is read again on the way out).
@@ -1064,20 +1081,22 @@ export const stepTeam = (g: Game, inputs: readonly StepInput[], dt: number) => {
   g.player = actor
   if (!inArena) updateSpawner(g, dt)
   rebuildGrid(g)
-  updateAlphas(g, dt)
+  if (!g.kids) updateAlphas(g, dt)
   updateEnemies(g, dt)
   updateBosses(g, dt)
-  updateWorldHazards(g, dt)
+  if (!g.kids) updateWorldHazards(g, dt)
   updateHazards(g, dt)
   updateStatuses(g, dt)
-  updateRiftPortal(g, dt)
-  updateArena(g, dt)
-  updateRaidDen(g, dt)
-  updateRaid(g, dt)
-  updatePlaceEntrance(g, dt)
-  updatePlace(g, dt)
-  eachPlayer(g, updateLandmarks, dt)
-  updateEndless(g)
+  if (!g.kids) {
+    updateRiftPortal(g, dt)
+    updateArena(g, dt)
+    updateRaidDen(g, dt)
+    updateRaid(g, dt)
+    updatePlaceEntrance(g, dt)
+    updatePlace(g, dt)
+    eachPlayer(g, updateLandmarks, dt)
+    updateEndless(g)
+  }
   rebuildGrid(g)
   updateTraits(g, dt)
   for (const p of g.players) {
@@ -1092,9 +1111,9 @@ export const stepTeam = (g: Game, inputs: readonly StepInput[], dt: number) => {
   // Checked again: the player may have stepped into a room this very tick.
   if (!roomOf(g)) {
     updateProps(g, dt)
-    updateMapEvents(g, dt)
+    if (!g.kids) updateMapEvents(g, dt)
   }
-  updateQuests(g, dt)
+  if (!g.kids) updateQuests(g, dt)
   updatePickups(g, dt)
   updateConsumables(g, dt)
   updateEffects(g, dt)
@@ -1110,7 +1129,8 @@ export const stepTeam = (g: Game, inputs: readonly StepInput[], dt: number) => {
   if (g.phase !== 'playing') return
   for (const p of g.players) {
     g.player = p
-    if (p.pendingLevelUps > 0 || evolutionFreed(g)) advancePhase(g)
+    if (g.kids) paceKidsEvolution(g)
+    if (p.pendingLevelUps > 0 || evolutionFreed(g) || (g.kids && pendingEvolution(g))) advancePhase(g)
   }
   g.player = actor
 }

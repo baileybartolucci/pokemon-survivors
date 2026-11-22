@@ -41,13 +41,15 @@ export const enemyScale = (g: Game) => {
   return { hp: scale.hp * mods.enemyHp * horde.hp, damage: scale.damage * horde.damage, xp: horde.xp }
 }
 
+const KIDS_BOSS_HP: Partial<Record<EnemyId, number>> = { onix: 130, mewtwo: 320 }
+
 export const spawnEnemy = (g: Game, kind: EnemyId, x: number, y: number, behavior: EnemyBehavior = { kind: 'chase' }) => {
   const def: EnemyDef = ENEMIES[kind]
   const boss = def.boss === true
   const mods = runMods(g)
   const scale = boss ? { hp: mods.enemyHp, damage: 1, xp: 1 } : enemyScale(g)
   // Co-op: the whole team hits it (`coopScale`; exactly 1 solo).
-  const hp = dm.round(def.hp * scale.hp * coopScale(g, boss ? COOP.scale.bossHp : COOP.scale.hp))
+  const hp = (g.kids ? KIDS_BOSS_HP[kind] : undefined) ?? dm.round(def.hp * scale.hp * coopScale(g, boss ? COOP.scale.bossHp : COOP.scale.hp))
   const enemy: Enemy = {
     id: g.nextId++,
     kind,
@@ -55,7 +57,7 @@ export const spawnEnemy = (g: Game, kind: EnemyId, x: number, y: number, behavio
     x, y, kx: 0, ky: 0,
     hp, maxHp: hp,
     damage: def.damage * scale.damage,
-    speed: def.speed * (boss ? 1 : mods.enemySpeed) * (0.92 + g.rng() * 0.16),
+    speed: def.speed * (boss && !g.kids ? 1 : mods.enemySpeed) * (0.92 + g.rng() * 0.16),
     mass: def.mass,
     radius: radiusFor(def.dex) * (def.scale ?? 1),
     xp: def.xp * scale.xp,
