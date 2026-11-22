@@ -20,7 +20,7 @@ export type Input = {
   /** Delivers a key press that didn't come from the keyboard. */
   press: (key: string) => void
   /** Reads the gamepads. Call once per frame; the context (a menu, a run, an Arena match) picks what the keys and buttons mean. */
-  poll: (context: Context, cursorFollow?: boolean) => void
+  poll: (context: Context, cursorFollow?: boolean, keepPointerLock?: boolean) => void
   /** The pad's right stick, tilted (length ≤ 1), or null at rest: the Arena aims and switches targets with it. */
   readAim: () => Vec | null
   /** The `Gamepad.id` of the pad the player pressed last, or null since a key was pressed (or before any pad was). */
@@ -320,8 +320,8 @@ export const createInput = (target: HTMLElement, bindings: () => Bindings, fixed
   }
 
   // Edge-detected per button, not per code: a button held across a run/menu switch doesn't press again.
-  const poll = (now: Context, follow = false) => {
-    if (!follow || now === 'menu') {
+  const poll = (now: Context, follow = false, keepPointerLock = false) => {
+    if (!follow || (now === 'menu' && !keepPointerLock)) {
       cursorMove = { x: 0, y: 0 }
       if (document.pointerLockElement === target) document.exitPointerLock()
     }
