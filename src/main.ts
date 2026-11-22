@@ -4714,7 +4714,7 @@ const frame = (now: number) => {
   last = now
   const t = now / 1000
   // Gamepads type the keyboard's codes: menus get confirm/back, a run its special, Mega and lunge, an Arena match its kit.
-  input.poll(run?.game.phase !== 'playing' ? 'menu' : run.game.versus ? 'arena' : 'run')
+  input.poll(run?.game.phase !== 'playing' ? 'menu' : run.game.versus ? 'arena' : 'run', run?.game.kids)
   setActivePad(input.activePad())
 
   // Co-op keeps its socket and lockstep going behind menus and loading screens too (not once it closed for good).

@@ -6763,7 +6763,7 @@ export const fr: Messages = {
     /** One team format on the Arena's card: its size and minutes. */
     arenaFormat: (size, minutes) => `${size}v${size} (${minutes} min)`,
     blurbs: {
-      kids: 'Utilise les flèches pour bouger. Les attaques sont automatiques !',
+      kids: 'Clique une fois dans le jeu, puis bouge la souris. Les flèches fonctionnent aussi. Les attaques sont automatiques !',
       survivors: 'Survis aux hordes jusqu’au bout',
       legends: 'Joue un légendaire',
       challenge: 'Le même Pokémon pour tous',

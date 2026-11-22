@@ -20,7 +20,7 @@ export type Input = {
   /** Delivers a key press that didn't come from the keyboard. */
   press: (key: string) => void
   /** Reads the gamepads. Call once per frame; the context (a menu, a run, an Arena match) picks what the keys and buttons mean. */
-  poll: (context: Context) => void
+  poll: (context: Context, cursorFollow?: boolean) => void
   /** The pad's right stick, tilted (length ≤ 1), or null at rest: the Arena aims and switches targets with it. */
   readAim: () => Vec | null
   /** The `Gamepad.id` of the pad the player pressed last, or null since a key was pressed (or before any pad was). */
@@ -165,6 +165,15 @@ export const dispatchKey = (handlers: Set<(key: string) => void>, key: string) =
   for (const h of [...handlers]) if (handlers.has(h)) h(key)
 }
 
+/** Kids Mode camera follows the player, so aim from the center of the canvas. */
+export const cursorDirection = (cursor: Vec, center: Vec): Vec => {
+  const x = cursor.x - center.x
+  const y = cursor.y - center.y
+  const distance = Math.hypot(x, y)
+  // A small resting area makes stopping easier on a mouse or trackpad.
+  return distance > 8 ? { x: x / distance, y: y / distance } : { x: 0, y: 0 }
+}
+
 /**
  * `bindings` is read on every press, so a remap applies at once. `fixedStick`
  * returns the fixed joystick's center (CSS px) while that mode is on, or null
@@ -181,6 +190,9 @@ export const createInput = (target: HTMLElement, bindings: () => Bindings, fixed
   let grip: Grip | null = null
   /** When `grip` was taken (`performance.now()`). */
   let grippedAt = 0
+  let cursorFollow = false
+  let cursorArmed = false
+  let cursor: Vec | null = null
   /** Last frame's pads, for edge detection. */
   let pads: PadState[] = []
   let activePad: string | null = null
@@ -228,6 +240,8 @@ export const createInput = (target: HTMLElement, bindings: () => Bindings, fixed
   const releaseAll = () => {
     held.clear()
     grip = null
+    cursorArmed = false
+    cursor = null
   }
   window.addEventListener('resize', releaseKeys)
   document.addEventListener('fullscreenchange', releaseKeys)
@@ -239,7 +253,17 @@ export const createInput = (target: HTMLElement, bindings: () => Bindings, fixed
   // Capturing the pointer keeps its pointerup coming when a mouse lets go outside the window
   // (touch is captured anyway), and every way a pointer can end lets go of the stick.
   target.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return
+    if (e.pointerType === 'mouse') {
+      if (e.button !== 0) return
+      if (cursorFollow && context === 'run') {
+        cursorArmed = true
+        cursor = { x: e.clientX, y: e.clientY }
+        return
+      }
+    } else {
+      cursorArmed = false
+      cursor = null
+    }
     // A stick whose finger the page no longer holds is stale: its end got lost (an app's webview
     // over the game ate it). The browser then calls every new touch non-primary and the stick
     // ignored them all: the Pokémon stood still for good while the buttons kept casting.
@@ -260,6 +284,15 @@ export const createInput = (target: HTMLElement, bindings: () => Bindings, fixed
     if (e.pointerType === 'mouse' && e.buttons === 0) grip = gripUp(grip, e.pointerId)
     else grip = gripMove(grip, e.pointerId, { x: e.clientX, y: e.clientY })
   })
+  target.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'mouse' && cursorArmed) {
+      cursor = { x: e.clientX, y: e.clientY }
+      used('mouse')
+    }
+  })
+  target.addEventListener('pointerleave', (e) => {
+    if (e.pointerType === 'mouse') cursor = null
+  })
   const release = (e: PointerEvent) => (grip = gripUp(grip, e.pointerId))
   window.addEventListener('pointerup', release)
   window.addEventListener('pointercancel', release)
@@ -268,6 +301,8 @@ export const createInput = (target: HTMLElement, bindings: () => Bindings, fixed
   const releaseOnReturn = () => {
     held.clear()
     grip = gripOnReturn(grip, performance.now() - grippedAt)
+    cursorArmed = false
+    cursor = null
   }
 
   /** Touch wins, then the keys and the D-pad, then the pad's stick: a stick that drifts never locks the keyboard out. */
@@ -283,7 +318,10 @@ export const createInput = (target: HTMLElement, bindings: () => Bindings, fixed
       }
     }
     const len = Math.hypot(x, y)
-    return len > 0 ? { x: x / len, y: y / len } : padMove
+    if (len > 0) return { x: x / len, y: y / len }
+    if (!cursor || context !== 'run' || padMove.x !== 0 || padMove.y !== 0) return padMove
+    const bounds = target.getBoundingClientRect()
+    return cursorDirection(cursor, { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 })
   }
 
   const onKey = (handler: (key: string) => void) => {
@@ -292,7 +330,12 @@ export const createInput = (target: HTMLElement, bindings: () => Bindings, fixed
   }
 
   // Edge-detected per button, not per code: a button held across a run/menu switch doesn't press again.
-  const poll = (now: Context) => {
+  const poll = (now: Context, follow = false) => {
+    if (!follow) {
+      cursorArmed = false
+      cursor = null
+    }
+    cursorFollow = follow
     context = now
     const playing = now !== 'menu'
     const { buttons, stick: axes, fresh, freshStick, pressed, move, aim, pads: seen } = padChanges(pads, readPads())

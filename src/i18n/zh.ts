@@ -6763,7 +6763,7 @@ export const zh: Messages = {
     /** One team format on the Arena's card: its size and minutes. */
     arenaFormat: (size, minutes) => `${size}v${size} (${minutes} 分鐘)`,
     blurbs: {
-      kids: '用方向鍵移動，攻擊會自動發動！',
+      kids: '點一下遊戲畫面，再移動滑鼠。也可以用方向鍵移動。攻擊會自動發動！',
       survivors: '在怪群中存活到最後',
       legends: '使用傳說寶可夢遊玩',
       challenge: '所有人使用同一隻寶可夢',

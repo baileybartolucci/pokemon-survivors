@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dispatchKey, gripOnReturn, type Grip } from './input'
+import { cursorDirection, dispatchKey, gripOnReturn, type Grip } from './input'
 
 describe('gripOnReturn', () => {
   const at = { x: 40, y: 500 }
@@ -44,5 +44,17 @@ describe('dispatchKey', () => {
     handlers.add(second)
     dispatchKey(handlers, 'Enter')
     expect(heard).toEqual(['first'])
+  })
+})
+
+describe('cursorDirection', () => {
+  const center = { x: 200, y: 150 }
+
+  it('stops near the displayed player', () => {
+    expect(cursorDirection({ x: 204, y: 146 }, center)).toEqual({ x: 0, y: 0 })
+  })
+
+  it('moves at full speed towards the cursor', () => {
+    expect(cursorDirection({ x: 230, y: 110 }, center)).toEqual({ x: 0.6, y: -0.8 })
   })
 })

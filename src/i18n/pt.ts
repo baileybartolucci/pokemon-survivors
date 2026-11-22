@@ -7225,7 +7225,7 @@ export const pt = {
     /** One team format on the Arena's card: its size and minutes. */
     arenaFormat: (size: number, minutes: number) => `${size}v${size} (${minutes} min)`,
     blurbs: {
-      kids: 'Use as setas para andar. Os ataques saem sozinhos!',
+      kids: 'Clique uma vez no jogo e mova o mouse. As setas também funcionam. Os ataques saem sozinhos!',
       survivors: 'Sobreviva às hordas até o fim',
       legends: 'Jogue com um lendário',
       challenge: 'O mesmo Pokémon para todos',
