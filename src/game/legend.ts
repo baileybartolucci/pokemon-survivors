@@ -205,7 +205,7 @@ export const legendMods = (difficulty: Difficulty): DifficultyMods => {
 
 /** The multipliers this run plays with: its difficulty's, pressed harder in the Legend mode (`teamLegend`). */
 export const runMods = (g: Game): DifficultyMods =>
-  g.kids ? KIDS_DIFFICULTY : teamLegend(g) ? legendMods(g.difficulty) : DIFFICULTIES[g.difficulty]
+  g.kids ? (g.kidsDifficulty ?? KIDS_DIFFICULTY) : teamLegend(g) ? legendMods(g.difficulty) : DIFFICULTIES[g.difficulty]
 
 /* ---------------- The legend's horde ---------------- */
 

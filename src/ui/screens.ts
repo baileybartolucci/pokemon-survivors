@@ -22,7 +22,7 @@ import { BRANCHES } from '../data/branches'
 import { isLegend, legendSignature } from '../data/legends'
 import { innateText } from './innateText'
 import { abilityIcon } from '../render/abilityArt'
-import type { Difficulty } from '../game/difficulty'
+import { KIDS_DIFFICULTY, saveKidsDifficulty, type Difficulty, type DifficultyMods } from '../game/difficulty'
 import { EGGS, refundOf, toSteps } from '../game/eggs'
 import { KIDS_RUN_LENGTH } from '../data/waves'
 import { overtime } from '../game/endless'
@@ -768,6 +768,46 @@ type PauseActions = {
   drop?: (index: number) => void
 }
 
+/** Changes apply to new spawns and player damage immediately. Existing enemies keep their health and speed. */
+const kidsDifficultyPanel = (root: HTMLElement, input: Input, g: Game, back: () => void): Screen => {
+  const mods = g.kidsDifficulty!
+  const close = () => { dispose(); back() }
+  const fields: [keyof DifficultyMods, string][] = [
+    ['enemyHp', 'Enemy health'], ['enemyDamage', 'Enemy damage'], ['spawnRate', 'Spawn rate'],
+    ['enemySpeed', 'Enemy speed'], ['ramp', 'Difficulty ramp'], ['healing', 'Healing'], ['iframes', 'Invulnerability (seconds)'],
+  ]
+  const rows = fields.map(([key, label]) => {
+    const value = h('output', {}, mods[key].toFixed(2))
+    const slider = h('input', { type: 'range', min: 0.1, max: 3, step: 0.05, value: mods[key], 'aria-label': label, oninput: (event) => {
+      mods[key] = Number((event.target as HTMLInputElement).value)
+      value.textContent = mods[key].toFixed(2)
+      saveKidsDifficulty(mods)
+    } })
+    return { key, value, slider, el: h('label', { class: 'setting-row' }, h('span', {}, label), slider, value) }
+  })
+  const reset = h('button', { class: 'btn' }, 'Reset defaults')
+  const done = h('button', { class: 'btn' }, 'Done')
+  const el = h('div', { class: 'screen dim' }, h('div', { class: 'dialog box wide' },
+    h('div', { class: 'dialog-title' }, 'Tune difficulty'),
+    h('p', {}, 'Changes apply to new enemies. Damage and healing change immediately.'),
+    h('div', { class: 'settings-rows' }, ...rows.map((row) => row.el)),
+    h('div', { class: 'buttons' }, reset, done),
+  ))
+  root.append(el)
+  const nav = menu(input, [reset, done], (i) => {
+    if (i === 1) return close()
+    Object.assign(mods, KIDS_DIFFICULTY)
+    saveKidsDifficulty(mods)
+    for (const row of rows) {
+      row.slider.value = String(mods[row.key])
+      row.value.textContent = mods[row.key].toFixed(2)
+    }
+  }, { horizontal: true })
+  const off = input.onKey((key) => { if (key === 'Escape') close() })
+  const dispose = () => { nav.off(); off(); el.remove() }
+  return { el, dispose }
+}
+
 export const pauseMenu = (root: HTMLElement, input: Input, g: Game, actions: PauseActions): Screen => {
   const el = h('div', { class: 'screen dim pause-screen' })
   let nav: ReturnType<typeof menu> | null = null
@@ -845,11 +885,12 @@ export const pauseMenu = (root: HTMLElement, input: Input, g: Game, actions: Pau
     const resume = h('button', { class: 'btn' }, m.resume)
     const sound = coop && h('button', { class: 'btn' }, cm.sound(soundOn))
     const settingsButton = h('button', { class: 'btn' }, m.settings)
+    const tuningButton = g.kids && h('button', { class: 'btn' }, 'Tune difficulty')
     const report = actions.report
     const reportButton = report && h('button', { class: 'btn' }, m.reportBug)
     const quit = h('button', { class: 'btn' }, g.versus ? t().versus.menu.leave : coop ? cm.leave : m.quit)
     const giveUp = g.versus && actions.surrender ? surrenderButton(g) : null
-    const buttons = [resume, ...(sound ? [sound] : []), settingsButton, ...(reportButton ? [reportButton] : []), ...(giveUp ? [giveUp] : []), quit]
+    const buttons = [resume, ...(sound ? [sound] : []), settingsButton, ...(tuningButton ? [tuningButton] : []), ...(reportButton ? [reportButton] : []), ...(giveUp ? [giveUp] : []), quit]
     // Co-op: the teammates' builds, to read and coordinate while the run goes on.
     const builds = coop && teamBuilds(g, localPlayer(g))
     nav?.off()
@@ -861,6 +902,7 @@ export const pauseMenu = (root: HTMLElement, input: Input, g: Game, actions: Pau
         sound.textContent = cm.sound(soundOn)
       }
       // Open after this key dispatch, or the new screen would receive the same Enter (or Space).
+      if (pressed === tuningButton) later(() => openSub((back) => kidsDifficultyPanel(root, input, g, back), i))
       if (pressed === settingsButton) later(() => openSub(actions.settings, i))
       if (pressed === reportButton && report) later(() => openSub(report, i))
       // Quitting opens the partner select, which would take that same press as its pick and start the run again.

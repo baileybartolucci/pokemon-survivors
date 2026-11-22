@@ -52,3 +52,22 @@ export const isDifficulty = (v: unknown): v is Difficulty => DIFFICULTY_IDS.some
 
 /** A saved difficulty, or Normal when it's missing or unknown. */
 export const parseDifficulty = (v: unknown): Difficulty => (isDifficulty(v) ? v : DEFAULT_DIFFICULTY)
+
+const KIDS_SETTINGS_KEY = 'ps:kidsDifficulty'
+
+/** Load each valid saved value independently so older saves keep their defaults. */
+export const loadKidsDifficulty = (): DifficultyMods => {
+  const mods = { ...KIDS_DIFFICULTY }
+  try {
+    const saved = JSON.parse(localStorage.getItem(KIDS_SETTINGS_KEY) ?? '{}')
+    for (const key of Object.keys(mods) as (keyof DifficultyMods)[]) {
+      const value = saved?.[key]
+      if (typeof value === 'number' && Number.isFinite(value) && value >= 0.1 && value <= 3) mods[key] = value
+    }
+  } catch { /* Use the defaults when storage is unavailable or invalid. */ }
+  return mods
+}
+
+export const saveKidsDifficulty = (mods: DifficultyMods) => {
+  try { localStorage.setItem(KIDS_SETTINGS_KEY, JSON.stringify(mods)) } catch { /* The run still uses these settings. */ }
+}

@@ -43,7 +43,7 @@ import { updateMegaKitB } from './megaKitBSystem'
 import { updateRocketKit } from './rocketKitSystem'
 import type { ShadowVariant } from './shadow'
 import { FRESH_LEVELUPS } from './learnsets'
-import { DEFAULT_DIFFICULTY, type Difficulty } from './difficulty'
+import { DEFAULT_DIFFICULTY, loadKidsDifficulty, type Difficulty } from './difficulty'
 import { updateBosses, updateHazards } from './bosses'
 import { createWorldHazards, updateWorldHazards } from './hazards'
 import { updateConsumables } from './consumables'
@@ -312,7 +312,7 @@ export const createRun = (view: Game['view'], seed: number, setups: readonly Pla
   const legends = setups.flatMap((setup) => (isLegend(setup.starter) ? [setup.starter] : []))
   const legendRun = legends.length > 0
   const g: Game = {
-    ...(options.kids && { kids: true as const }),
+    ...(options.kids && { kids: true as const, kidsDifficulty: loadKidsDifficulty() }),
     difficulty: options.difficulty ?? DEFAULT_DIFFICULTY,
     rng,
     time: 0,

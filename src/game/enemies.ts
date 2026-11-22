@@ -1,3 +1,4 @@
+import { KIDS_DIFFICULTY } from './difficulty'
 import { dir8, dirTo, retain } from '../engine/math'
 import { clearGrid, insert } from '../engine/spatial'
 import { separate } from './separation'
@@ -49,7 +50,9 @@ export const spawnEnemy = (g: Game, kind: EnemyId, x: number, y: number, behavio
   const mods = runMods(g)
   const scale = boss ? { hp: mods.enemyHp, damage: 1, xp: 1 } : enemyScale(g)
   // Co-op: the whole team hits it (`coopScale`; exactly 1 solo).
-  const hp = (g.kids ? KIDS_BOSS_HP[kind] : undefined) ?? dm.round(def.hp * scale.hp * coopScale(g, boss ? COOP.scale.bossHp : COOP.scale.hp))
+  const hp = g.kids && KIDS_BOSS_HP[kind] !== undefined
+    ? Math.max(1, dm.round(KIDS_BOSS_HP[kind]! * mods.enemyHp / KIDS_DIFFICULTY.enemyHp))
+    : dm.round(def.hp * scale.hp * coopScale(g, boss ? COOP.scale.bossHp : COOP.scale.hp))
   const enemy: Enemy = {
     id: g.nextId++,
     kind,

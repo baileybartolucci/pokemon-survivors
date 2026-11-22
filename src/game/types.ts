@@ -24,7 +24,7 @@ import type { BranchFavor } from './branch'
 import type { Ranks } from './meta'
 import type { ConsumableId } from './consumables'
 import type { DexLog } from './dex'
-import type { Difficulty } from './difficulty'
+import type { Difficulty, DifficultyMods } from './difficulty'
 import type { EggTier, RunEggs } from './eggs'
 import type { FindId } from '../data/seasonOneUnlocks'
 import type { FindMoment, SeasonFinds } from './seasonOneFinds'
@@ -975,6 +975,7 @@ export type Evolution = { from: number; to: number; t: number; awakening?: numbe
 
 export type Game = {
   kids?: true
+  kidsDifficulty?: DifficultyMods
   /** Multipliers this run plays with (`difficulty.ts`). */
   difficulty: Difficulty
   /** The run's rng; its state is plain data on it (`rng.state`), so snapshots carry it. */
