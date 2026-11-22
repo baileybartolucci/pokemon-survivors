@@ -475,7 +475,7 @@ export const drafting = (g: Game) => phaseOf(g) === 'levelup' && g.time === 0 &&
 /** How a player rolls their level-up cards: rarity on, with their Shiny Charm's odds and the luck of their ability (Jirachi's Serene Grace). */
 const rolling = (g: Game): RollOptions => {
   const luck = abilityLuck(g)
-  return { shiny: shinyOfferOdds(g.player.ranks.shinyCharm) * luck.shiny, rare: luck.rare }
+  return { shiny: shinyOfferOdds(g.player.ranks.shinyCharm) * luck.shiny, rare: luck.rare, itemSlots: g.kids ? 1 : undefined }
 }
 
 /**

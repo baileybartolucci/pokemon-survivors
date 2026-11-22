@@ -172,6 +172,8 @@ export type RollOptions = {
   duos?: boolean
   /** Cards already on the table (a slot drawn again): their moves, items and evolutions aren't drawn twice. */
   shown?: readonly Offer[]
+  /** Prefer move cards after this many items are on the table. Items fill any slots left over. */
+  itemSlots?: number
 }
 
 /** The move or item a card is about, if any (berries and evolutions have none to forget). */
@@ -239,12 +241,16 @@ export const rollOffers = (loadout: Loadout, rng: Rng, count = 3, opts: RollOpti
     .filter(({ to }) => !taken.has(to))
     .map(({ from, to }) => ({ kind: 'evolution', from, to }))
   const picked: Offer[] = [...evolutions, ...duos].slice(0, count)
+  let items = shown.filter((o) => o.kind === 'item').length
   while (picked.length < count && pool.length > 0) {
-    const total = pool.reduce((s, [, w]) => s + w, 0)
+    const moves = opts.itemSlots !== undefined && items >= opts.itemSlots ? pool.filter(([o]) => o.kind === 'move') : []
+    const available = moves.length > 0 ? moves : pool
+    const total = available.reduce((s, [, w]) => s + w, 0)
     let roll = rng() * total
-    const index = Math.max(0, pool.findIndex(([, w]) => (roll -= w) <= 0))
-    picked.push(pool[index]![0])
-    pool.splice(index, 1)
+    const drawn = available[Math.max(0, available.findIndex(([, w]) => (roll -= w) <= 0))]!
+    picked.push(drawn[0])
+    if (drawn[0].kind === 'item') items++
+    pool.splice(pool.indexOf(drawn), 1)
   }
   // Swap cards alone never force a swap: the berry sits beside them.
   if (picked.length > 0 && picked.length < count && picked.every((o) => needsSwap(loadout, o))) picked.push({ kind: 'berry' })

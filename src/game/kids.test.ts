@@ -7,13 +7,25 @@ import { hurtPlayer } from './combat'
 import { spawnEnemy } from './enemies'
 import { chooseOffer, createGame, createKidsGame, step } from './game'
 import { runMods } from './legend'
-import { gainXp } from './leveling'
+import { gainXp, loadout, rollOffers } from './leveling'
 import { TICK } from './replay'
 
 const view = { w: 480, h: 270 }
 const still = { move: { x: 0, y: 0 }, special: false }
 
 describe('Kids Mode', () => {
+  it('offers at least two moves when available, even on item-heavy rolls', () => {
+    const g = createKidsGame('treecko', view, 42)
+    const starter = loadout(g)
+    const roll = () => 0.999
+    expect(rollOffers(starter, roll).map((offer) => offer.kind)).toEqual(['item', 'item', 'item'])
+    const kids = rollOffers(starter, roll, 3, { itemSlots: 1 })
+    expect(kids.map((offer) => offer.kind)).toEqual(['item', 'move', 'move'])
+    expect(rollOffers(starter, roll, 1, { itemSlots: 1, shown: kids.slice(0, 2) })[0]?.kind).toBe('move')
+    const noMoves = { ...starter, banished: new Set(g.player.moves.map((move) => move.id)), kit: true }
+    expect(rollOffers(noMoves, roll, 3, { itemSlots: 1 }).map((offer) => offer.kind)).toEqual(['item', 'item', 'item'])
+  })
+
   it('uses gentler stats with a rising wave and stat curve', () => {
     const kids = createKidsGame('mudkip', view, 19)
     const regular = createGame('mudkip', view, 19)
