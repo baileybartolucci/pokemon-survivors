@@ -444,7 +444,7 @@ export const levelUp = (root: HTMLElement, input: Input, g: Game, onChoose: (off
   const charge = (left: number, label: string, cls = 'btn') => (extras && !fork && left > 0 ? h('button', { class: cls }, label) : null)
   const reroll = charge(localPlayer(g).rerolls, m.reroll(localPlayer(g).rerolls))
   const skip = charge(localPlayer(g).skips, m.skip(localPlayer(g).skips))
-  const banish = charge(localPlayer(g).banishes, m.banish(localPlayer(g).banishes), 'btn btn-banish')
+  const banish = g.kids ? null : charge(localPlayer(g).banishes, m.banish(localPlayer(g).banishes), 'btn btn-banish')
   const actions = [reroll, skip, banish].filter((b) => b !== null)
 
   const offersEl = h('div', { class: fork ? 'offers branches' : 'offers' }, ...buttons)
