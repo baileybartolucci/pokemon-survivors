@@ -1,4 +1,3 @@
-import { KIDS_DIFFICULTY } from './difficulty'
 import { dir8, dirTo, retain } from '../engine/math'
 import { clearGrid, insert } from '../engine/spatial'
 import { separate } from './separation'
@@ -42,7 +41,7 @@ export const enemyScale = (g: Game) => {
   return { hp: scale.hp * mods.enemyHp * horde.hp, damage: scale.damage * horde.damage, xp: horde.xp }
 }
 
-const KIDS_BOSS_HP: Partial<Record<EnemyId, number>> = { onix: 130, mewtwo: 1280 }
+const KIDS_BOSS_HP: Partial<Record<EnemyId, number>> = { onix: 156, mewtwo: 1536 }
 
 export const spawnEnemy = (g: Game, kind: EnemyId, x: number, y: number, behavior: EnemyBehavior = { kind: 'chase' }) => {
   const def: EnemyDef = ENEMIES[kind]
@@ -51,7 +50,7 @@ export const spawnEnemy = (g: Game, kind: EnemyId, x: number, y: number, behavio
   const scale = boss ? { hp: mods.enemyHp, damage: 1, xp: 1 } : enemyScale(g)
   // Co-op: the whole team hits it (`coopScale`; exactly 1 solo).
   const hp = g.kids && KIDS_BOSS_HP[kind] !== undefined
-    ? Math.max(1, dm.round(KIDS_BOSS_HP[kind]! * mods.enemyHp / KIDS_DIFFICULTY.enemyHp))
+    ? Math.max(1, dm.round(KIDS_BOSS_HP[kind]! * mods.enemyHp / 0.72))
     : dm.round(def.hp * scale.hp * coopScale(g, boss ? COOP.scale.bossHp : COOP.scale.hp))
   const enemy: Enemy = {
     id: g.nextId++,

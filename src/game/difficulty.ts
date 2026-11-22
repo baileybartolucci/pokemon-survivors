@@ -39,7 +39,7 @@ export const DIFFICULTIES = {
 
 /** Kids Mode is local and uses its own tuning, outside the ranked difficulty list. */
 export const KIDS_DIFFICULTY: DifficultyMods = {
-  enemyHp: 0.6, enemyDamage: 0.3, spawnRate: 0.8, enemySpeed: 0.72, ramp: 0.8, healing: 1.5, iframes: 1.2,
+  enemyHp: 0.72, enemyDamage: 0.36, spawnRate: 0.96, enemySpeed: 0.864, ramp: 0.96, healing: 1.25, iframes: 1,
 }
 
 export type Difficulty = keyof typeof DIFFICULTIES
