@@ -7219,10 +7219,13 @@ export const pt = {
   gameModes: {
     title: 'MODOS DE JOGO',
     close: 'Fechar',
-    names: { survivors: 'Survivors', legends: 'Lendas', challenge: 'Desafio do dia', coop: 'Co-op', arena: 'Arena', dojo: 'Dojo', realm: 'Poké Realm' } satisfies Record<GameModeId, string>,
+    kidsPick: 'Escolha um Pokémon',
+    kidsTimeUp: 'O tempo acabou!',
+    names: { survivors: 'Survivors', kids: 'Modo Infantil', legends: 'Lendas', challenge: 'Desafio do dia', coop: 'Co-op', arena: 'Arena', dojo: 'Dojo', realm: 'Poké Realm' } satisfies Record<GameModeId, string>,
     /** One team format on the Arena's card: its size and minutes. */
     arenaFormat: (size: number, minutes: number) => `${size}v${size} (${minutes} min)`,
     blurbs: {
+      kids: 'Use as setas para andar. Os ataques saem sozinhos!',
       survivors: 'Sobreviva às hordas até o fim',
       legends: 'Jogue com um lendário',
       challenge: 'O mesmo Pokémon para todos',

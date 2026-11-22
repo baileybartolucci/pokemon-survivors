@@ -10,7 +10,7 @@ import type { EvolutionStage } from '../data/starters'
 import { TIER_STATS, type Tier } from '../data/roster'
 import { EVENTS, MYTHICALS, STAGES, stageIndexAt, TRIO_IDS, TRIOS, type WaveEvent, type WaveStage } from '../data/waves'
 import { formLocked } from './communityGoal'
-import { DIFFICULTIES, type Difficulty, type DifficultyMods } from './difficulty'
+import { KIDS_DIFFICULTY, DIFFICULTIES, type Difficulty, type DifficultyMods } from './difficulty'
 import { withTrio, type Roster, type RosterOptions } from './roster'
 import { burst, shakeScreen } from './effects'
 import type { StatDelta } from './stats'
@@ -204,7 +204,8 @@ export const legendMods = (difficulty: Difficulty): DifficultyMods => {
 }
 
 /** The multipliers this run plays with: its difficulty's, pressed harder in the Legend mode (`teamLegend`). */
-export const runMods = (g: Game): DifficultyMods => (teamLegend(g) ? legendMods(g.difficulty) : DIFFICULTIES[g.difficulty])
+export const runMods = (g: Game): DifficultyMods =>
+  g.kids ? KIDS_DIFFICULTY : teamLegend(g) ? legendMods(g.difficulty) : DIFFICULTIES[g.difficulty]
 
 /* ---------------- The legend's horde ---------------- */
 

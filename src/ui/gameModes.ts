@@ -5,7 +5,7 @@ import { ARENA_FORMAT_IDS } from '../data/arenaFormats'
 import { GAME_MODE_IDS, GAME_MODES, type GameModeId } from '../data/gameModes'
 import { PLAYABLE } from '../data/hatchlings'
 import { VERSUS_FORMATS } from '../data/versus'
-import { RUN_LENGTH } from '../data/waves'
+import { KIDS_RUN_LENGTH, RUN_LENGTH } from '../data/waves'
 import { TEAM_SIZES } from '../game/coopBoard'
 import { shownLegends } from '../game/festival'
 import { t } from '../i18n'
@@ -44,6 +44,10 @@ export const modeFacts = (): Record<GameModeId, ModeFacts> => {
     survivors: {
       blurb: m.blurbs.survivors,
       tags: [{ text: m.tags.solo }, { text: m.tags.minutes(RUN_LENGTH / 60) }, { text: m.tags.endless }],
+    },
+    kids: {
+      blurb: m.blurbs.kids,
+      tags: [{ text: m.tags.minutes(KIDS_RUN_LENGTH / 60) }, { text: m.tags.solo }],
     },
     legends: {
       blurb: m.blurbs.legends,
@@ -129,7 +133,7 @@ const paintCast = (card: CardArt, today: Dex, time: number) => {
 
 /**
  * Modos de jogo: a modal over the lobby's meadow, a card per mode with its scene (`render/modeScenes.ts`), its nameplate and its
- * tags; Survivors takes a double card, which also makes the 7 modes fill the grid. The current one wears the gold frame.
+ * tags; Survivors takes a double card. The current one wears the gold frame.
  * Tap, click, or arrows and Enter (keyboard or pad) pick; Esc, the ✕ or a tap outside close. A pick moves the frame and calls
  * `onPick`; the screen stays up until `close` or the caller's next `setScreen`, so the caller decides whether a pick
  * also leaves.

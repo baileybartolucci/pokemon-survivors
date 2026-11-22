@@ -1,3 +1,4 @@
+import { KIDS_RUN_LENGTH } from '../data/waves'
 import { formatTime } from '../engine/math'
 import { canEvolve, evolutionOf, evolvedFrom } from '../data/evolutions'
 import { ENEMIES } from '../data/enemies'
@@ -55,7 +56,7 @@ const hpClass = (ratio: number) => (ratio > 0.5 ? 'hp-high' : ratio > 0.2 ? 'hp-
  * lights the desktop WASD keys. Hovering or holding a move slot opens its card (`withMoveCard`). Labels are
  * read at creation: rebuild the HUD after a language switch.
  */
-export const createHud = (root: HTMLElement, onSpecial: () => void, onMega: () => void, onTera: () => void, onLunge: () => void, onPause: () => void, onLayout: () => void, isHeld: (code: string) => boolean, menu = false) => {
+export const createHud = (root: HTMLElement, onSpecial: () => void, onMega: () => void, onTera: () => void, onLunge: () => void, onPause: () => void, onLayout: () => void, isHeld: (code: string) => boolean, menu = false, autoAttacks = false) => {
   const movePad = createMovePad(isHeld)
   const stickLock = createStickLock(root, onLayout)
   const special = createSpecialControls(onSpecial)
@@ -128,7 +129,7 @@ export const createHud = (root: HTMLElement, onSpecial: () => void, onMega: () =
     h(
       'div',
       { class: 'hud-row' },
-      h('div', { class: 'hud-left' }, h('div', { class: 'loadout' }, moveSlots, itemSlots, buffs), special.badge, lunge.badge, mega.badge, tera.badge),
+      h('div', { class: 'hud-left' }, h('div', { class: 'loadout' }, moveSlots, itemSlots, buffs), !autoAttacks && special.badge, !autoAttacks && lunge.badge, !autoAttacks && mega.badge, !autoAttacks && tera.badge),
       timer,
       h(
         'div',
@@ -165,10 +166,10 @@ export const createHud = (root: HTMLElement, onSpecial: () => void, onMega: () =
       stickLock.button,
     ),
     movePad.el,
-    special.button,
-    mega.button,
-    tera.button,
-    lunge.button,
+    !autoAttacks && special.button,
+    !autoAttacks && mega.button,
+    !autoAttacks && tera.button,
+    !autoAttacks && lunge.button,
   )
   const minimap = createMinimap(el)
   el.append(minimap.el)
@@ -233,7 +234,7 @@ export const createHud = (root: HTMLElement, onSpecial: () => void, onMega: () =
     const p = localPlayer(g)
     setStyle(xpFill, 'width', `${Math.min(100, (p.xp / p.xpNext) * 100).toFixed(1)}%`)
     setText(xpLabel, t().level(p.level))
-    setText(clock, formatTime(g.time))
+    setText(clock, formatTime(g.kids ? Math.ceil(KIDS_RUN_LENGTH - g.time) : g.time))
     if (weatherHere(g) !== weatherKey) {
       const id = weatherHere(g)
       weatherKey = id
@@ -259,10 +260,12 @@ export const createHud = (root: HTMLElement, onSpecial: () => void, onMega: () =
     }
     movePad.update()
     stickLock.update()
-    special.update(g)
-    mega.update(g)
-    tera.update(g)
-    lunge.update(g)
+    if (!autoAttacks) {
+      special.update(g)
+      mega.update(g)
+      tera.update(g)
+      lunge.update(g)
+    }
     rift.update(g)
     duel.update(g)
     ruins.update(g)
@@ -372,7 +375,7 @@ export const createHud = (root: HTMLElement, onSpecial: () => void, onMega: () =
     if (b) {
       if (ticked !== b.kind) {
         ticked = b.kind
-        bossBar.replaceChildren(bossFill, ...(phasesOf(b.kind) ?? []).slice(1).filter((ph) => ph.rebirth === undefined).map((ph) => h('i', { class: 'boss-tick', style: `left:${(ph.below * 100).toFixed(1)}%` })))
+        bossBar.replaceChildren(bossFill, ...(g.kids ? [] : phasesOf(b.kind) ?? []).slice(1).filter((ph) => ph.rebirth === undefined).map((ph) => h('i', { class: 'boss-tick', style: `left:${(ph.below * 100).toFixed(1)}%` })))
       }
     }
   }

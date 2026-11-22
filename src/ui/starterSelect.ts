@@ -2,7 +2,7 @@ import { blitCentered, context2d } from '../engine/pixelart'
 import { playCry, playSfx } from '../engine/audio'
 import type { Input } from '../engine/input'
 import { HATCHLING_IDS, HATCHLINGS, isHatchling, isStarter, PLAYABLE, type HatchlingId, type PlayableId } from '../data/hatchlings'
-import { REGIONS, type StarterId } from '../data/starters'
+import { KIDS_STARTERS, REGIONS, type KidsStarter, type StarterId } from '../data/starters'
 import { TYPE_COLORS } from '../data/types'
 import { megasOf } from '../data/megas'
 import { bodyOf } from '../data/bodies'
@@ -46,7 +46,7 @@ import { gemAmount, itemName } from './gemBits'
 import { formatDay, formatPokeDollarsShort, t } from '../i18n'
 import { h, later, rich } from './dom'
 import { loadSave, today, ultraToday, updateSave } from './save'
-import { typeBadge, type Screen } from './screens'
+import { menu, typeBadge, type Screen } from './screens'
 import { actionBar, backButton, gearButton, segmented, shellScreen, topBar, walletChip } from './shell'
 import { detailsSheet, evoLine, shinyPicker, statBars } from './partnerDetails'
 import { purifyDialog, shadowRow } from './shadowPick'
@@ -983,4 +983,34 @@ export const starterSelect = (root: HTMLElement, input: Input, actions: SelectAc
   }
 
   return { el, tick, selected: current, dispose: () => (off(), offGems(), pathOpen?.dispose(), clearTimeout(cryTimer), window.removeEventListener('keydown', holdTab), rushSheet?.dispose(), purifyAsk?.dispose(), el.remove()) }
+}
+
+/** The local mode starts as soon as a Pokémon is picked. */
+export const kidsStarterSelect = (root: HTMLElement, input: Input, pick: (id: KidsStarter) => void, back: () => void): Screen => {
+  const copy = t().gameModes
+  const buttons = KIDS_STARTERS.map((id) => {
+    const starter = PLAYABLE[id]
+    return h('button', { class: 'btn', type: 'button' },
+      h('img', { src: portraitUrl(starter.line[0].dex), alt: '', width: 40, height: 40 }),
+      starter.name,
+    )
+  })
+  const el = shellScreen({
+    class: 'partner-screen',
+    top: topBar({ left: backButton(back), title: copy.names.kids }),
+    body: [h('div', { class: 'dialog box' },
+      h('h2', { class: 'dialog-title' }, copy.kidsPick),
+      h('p', {}, copy.blurbs.kids),
+      h('div', { class: 'buttons' }, ...buttons),
+    )],
+  })
+  root.append(el)
+  const nav = menu(input, buttons, (i) => {
+    playSfx('select')
+    later(() => pick(KIDS_STARTERS[i]!))
+  }, { horizontal: true })
+  const off = input.onKey((key) => {
+    if (key === 'Escape' || key === 'Backspace') later(back)
+  })
+  return { el, dispose: () => (nav.off(), off(), el.remove()) }
 }

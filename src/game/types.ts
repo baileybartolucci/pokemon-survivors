@@ -974,6 +974,7 @@ export type Buff = { id: BuffId; left: number; total: number }
 export type Evolution = { from: number; to: number; t: number; awakening?: number; form?: LegendForm }
 
 export type Game = {
+  kids?: true
   /** Multipliers this run plays with (`difficulty.ts`). */
   difficulty: Difficulty
   /** The run's rng; its state is plain data on it (`rng.state`), so snapshots carry it. */

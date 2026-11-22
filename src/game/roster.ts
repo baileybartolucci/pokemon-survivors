@@ -178,7 +178,7 @@ export const drawRoster = (rng: Rng, { weight = () => 1, stages = STAGES, events
   const eventSpecies = events.map((e): EnemyId | null => {
     if (e.kind === 'boss') return null
     if ('enemy' in e) return e.enemy
-    const stage = stageIndexAt(e.at)
+    const stage = stageIndexAt(e.at, stages)
     const met = metBy(stage, e.tier)
     if (e.kind === 'ring') return met.length > 0 ? pick(rng, met)[0] : draw(ofTier(e.tier, false), stage)
     const flyers = met.filter(([, def]) => isFlyer(def))
@@ -199,7 +199,7 @@ export const drawRoster = (rng: Rng, { weight = () => 1, stages = STAGES, events
   const mythical = pick(rng, MYTHICALS)
 
   // Drawn after everything else, so the rest of the roster is the same with or without spitters.
-  const firstSpitter = stageIndexAt(SPIT_FROM)
+  const firstSpitter = stageIndexAt(SPIT_FROM, stages)
   const spitters = casts.map(({ carried, fresh }, i) => {
     const stage = stages[i]
     if (i < firstSpitter || !stage) return null

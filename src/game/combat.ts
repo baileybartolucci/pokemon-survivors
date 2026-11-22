@@ -243,6 +243,11 @@ export const killEnemy = (g: Game, e: Enemy, source?: DamageSource | null) => {
   } else if (e.boss) {
     // Every boss defeated earns everyone an Esquecer charge (`banishOffer`).
     for (const p of g.players) p.banishes++
+    if (g.kids) {
+      if (g.bossId === e.id) g.bossId = null
+      if (e.kind === 'mewtwo' && g.phase !== 'gameover') winRun(g)
+      return
+    }
     // A legendary's defeat counts toward capturing it (the save's side, `legendBeaten`).
     const def: EnemyDef = ENEMIES[e.kind]
     if (def.legendary) {

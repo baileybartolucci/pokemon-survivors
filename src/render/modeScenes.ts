@@ -1,5 +1,6 @@
 import { assetUrl } from '../assets'
 import type { GameModeId } from '../data/gameModes'
+import { KIDS_STARTERS, STARTERS } from '../data/starters'
 import { artImages } from '../engine/pixelart'
 import type { Dex } from './sprites'
 
@@ -103,7 +104,7 @@ const stands = (p: Paint) => {
   for (let x = 6; x < p.w; x += 16) p.rect(x, 2, 8, 3, '#fff6c8')
 }
 
-export const MODE_SCENES: Record<GameModeId, ModeScene> = {
+const SCENES: Record<Exclude<GameModeId, 'kids'>, ModeScene> = {
   survivors: {
     back: (p, g) => {
       const r = seeded(7)
@@ -312,6 +313,14 @@ export const MODE_SCENES: Record<GameModeId, ModeScene> = {
 }
 
 /** Whether every picture a scene draws has landed. */
+export const MODE_SCENES: Record<GameModeId, ModeScene> = {
+  ...SCENES,
+  kids: {
+    back: SCENES.survivors.back,
+    cast: () => KIDS_STARTERS.map((id, i) => ({ dex: STARTERS[id].line[0].dex, at: 0.25 * (i + 1) })),
+  },
+}
+
 export const sceneArtReady = (id: GameModeId) => (MODE_SCENES[id].art ?? []).every((name) => picture(name) !== null)
 
 /** Paints what's in front of the Pokémon: the scene's own and then the nameplate of `plate` rows in the mode's color, with a dithered top edge. */

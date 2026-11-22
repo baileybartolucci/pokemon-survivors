@@ -65,6 +65,19 @@ export type WaveEvent =
   | { at: number; kind: 'ring'; enemy: EnemyId; count: number }
 
 export const RUN_LENGTH = 15 * 60
+export const KIDS_RUN_LENGTH = 5 * 60
+
+export const KIDS_STAGES: readonly WaveStage[] = [
+  { until: 60, rate: 1.2, max: 18, cast: [1, 1, 1], fresh: 3 },
+  { until: 120, rate: 1.5, max: 24, cast: [1, 1, 1], fresh: 1 },
+  { until: 210, rate: 1.9, max: 30, cast: [1, 1, 2], fresh: 1 },
+  { until: Infinity, rate: 2.3, max: 38, cast: [1, 2, 2], fresh: 1 },
+]
+
+export const KIDS_EVENTS: readonly WaveEvent[] = [
+  { at: 90, kind: 'boss', enemy: 'onix' },
+  { at: KIDS_RUN_LENGTH - 30, kind: 'boss', enemy: 'mewtwo', finale: true },
+]
 
 export const STAGES: readonly WaveStage[] = [
   { until: 60, rate: 1.4, max: 40, cast: [1, 1, 1], fresh: 3 },
@@ -169,7 +182,8 @@ export const nightCandidates = (e: BossEvent): readonly EnemyId[] =>
 const waveOfBoss = new Map<EnemyId, number | null>()
 
 /** When the wave a boss belongs to arrives (its scheduled event, a night boss's slot included), or null for bosses off the schedule (rifts, Arceus). */
-export const bossWaveAt = (enemy: EnemyId) => {
+export const bossWaveAt = (enemy: EnemyId, kids = false) => {
+  if (kids) return KIDS_EVENTS.find((e) => e.kind === 'boss' && 'enemy' in e && e.enemy === enemy)?.at ?? null
   let at = waveOfBoss.get(enemy)
   if (at === undefined) {
     at = EVENTS.find((e) => e.kind === 'boss' && (bossCandidates(e).includes(enemy) || nightCandidates(e).includes(enemy)))?.at ?? null
@@ -184,15 +198,15 @@ export const bossWaveAt = (enemy: EnemyId) => {
  * arrives, an earlier wave's boss still around flees. Bosses of the same wave
  * (Mew and Mewtwo) stay together, and bosses off the schedule never flee.
  */
-export const fleesFrom = (enemy: EnemyId, at: number) => {
-  const own = bossWaveAt(enemy)
+export const fleesFrom = (enemy: EnemyId, at: number, kids = false) => {
+  const own = bossWaveAt(enemy, kids)
   return own !== null && own < at
 }
 
 /** Index into `STAGES` of the stage active at `time`. */
-export const stageIndexAt = (time: number) => {
-  const i = STAGES.findIndex((s) => time < s.until)
-  return i < 0 ? STAGES.length - 1 : i
+export const stageIndexAt = (time: number, stages = STAGES) => {
+  const i = stages.findIndex((s) => time < s.until)
+  return i < 0 ? stages.length - 1 : i
 }
 
 /** Run time (seconds) a stage starts at. */
