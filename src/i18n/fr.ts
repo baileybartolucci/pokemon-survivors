@@ -6757,6 +6757,9 @@ export const fr: Messages = {
   gameModes: {
     title: 'MODES DE JEU',
     close: 'Fermer',
+    kidsStart: 'Appuie sur une touche pour le Mode Enfants',
+    kidsTap: 'Touche pour le Mode Enfants',
+    regularStart: 'Mode normal',
     kidsPick: 'Choisis un Pokémon',
     kidsTimeUp: 'Temps écoulé !',
     names: { survivors: 'Survivors', kids: 'Mode Enfants', legends: 'Légendes', challenge: 'Défi du jour', coop: 'Coop', arena: 'Arène', dojo: 'Dojo', realm: 'Poké Realm' },

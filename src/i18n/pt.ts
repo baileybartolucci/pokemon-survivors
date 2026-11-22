@@ -7219,6 +7219,9 @@ export const pt = {
   gameModes: {
     title: 'MODOS DE JOGO',
     close: 'Fechar',
+    kidsStart: 'Aperte qualquer tecla para o Modo Infantil',
+    kidsTap: 'Toque para o Modo Infantil',
+    regularStart: 'Modo Normal',
     kidsPick: 'Escolha um Pokémon',
     kidsTimeUp: 'O tempo acabou!',
     names: { survivors: 'Survivors', kids: 'Modo Infantil', legends: 'Lendas', challenge: 'Desafio do dia', coop: 'Co-op', arena: 'Arena', dojo: 'Dojo', realm: 'Poké Realm' } satisfies Record<GameModeId, string>,

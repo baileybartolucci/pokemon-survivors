@@ -6757,6 +6757,9 @@ export const zh: Messages = {
   gameModes: {
     title: '遊戲模式',
     close: '關閉',
+    kidsStart: '按任意鍵進入兒童模式',
+    kidsTap: '點一下進入兒童模式',
+    regularStart: '一般模式',
     kidsPick: '選擇一隻寶可夢',
     kidsTimeUp: '時間到！',
     names: { survivors: 'Survivors', kids: '兒童模式', legends: '傳說', challenge: '每日挑戰', coop: '合作', arena: '競技場', dojo: '道場', realm: 'Poké Realm' },

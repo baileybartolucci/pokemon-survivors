@@ -4043,6 +4043,20 @@ button {
   gap: clamp(12px, 3 * var(--vh), 32px);
 }
 
+.regular-start {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  font-size: 14px;
+  color: #fff;
+  background: #303044;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 /* Sized in whole device pixels per logo pixel by `fitLogo` (ui/title.ts). */
 .title-logo {
   display: block;

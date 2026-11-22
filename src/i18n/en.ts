@@ -6761,6 +6761,9 @@ export const en: Messages = {
   gameModes: {
     title: 'GAME MODES',
     close: 'Close',
+    kidsStart: 'Press any key for Kids Mode',
+    kidsTap: 'Tap for Kids Mode',
+    regularStart: 'Regular Mode',
     kidsPick: 'Pick a Pokémon',
     kidsTimeUp: 'Time’s up!',
     names: { survivors: 'Survivors', kids: 'Kids Mode', legends: 'Legends', challenge: 'Daily Challenge', coop: 'Co-op', arena: 'Arena', dojo: 'Dojo', realm: 'Poké Realm' },

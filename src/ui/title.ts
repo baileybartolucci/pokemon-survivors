@@ -770,11 +770,11 @@ export const titleScreen = (
     logo.classList.add('shown')
   })
 
-  const prompt = h('p', { class: 'press-start blink' }, h('span', { class: 'keys-only' }, m.pressKeys), h('span', { class: 'touch-only' }, m.pressTouch))
+  const prompt = h('p', { class: 'press-start blink' }, h('span', { class: 'keys-only' }, t().gameModes.kidsStart), h('span', { class: 'touch-only' }, t().gameModes.kidsTap))
   // The top bar waits for the lobby.
   let bar: HTMLElement = h('span', { class: 'hidden' })
-  const kidsStart = h('button', { class: 'btn', type: 'button' }, t().gameModes.names.kids, h('span', { class: 'key-hint' }, 'K'))
-  const intro = shellBody(h('h1', { class: 'sr-only' }, 'Pokémon Survivors'), logo, prompt, kidsStart)
+  const regularStart = h('button', { class: 'regular-start', type: 'button' }, t().gameModes.regularStart)
+  const intro = shellBody(h('h1', { class: 'sr-only' }, 'Pokémon Survivors'), logo, prompt, regularStart)
   const wipeEl = h('div', { class: 'lobby-wipe hidden', 'aria-hidden': 'true' })
   // The Noite das Bruxas dresses the lobby in orange and purple (`style.css`).
   const el = h('div', { class: halloweenToday() ? 'screen shell title-home haunted' : 'screen shell title-home' }, bar, intro, wipeEl)
@@ -1639,12 +1639,12 @@ export const titleScreen = (
     const standardStart = actions.start ?? enterLobby
     const offKey = input.onKey((key) => {
       if (key === 'Tab') return
-      if (key === 'KeyK' || (document.activeElement === kidsStart && (key === 'Enter' || key === 'Space'))) start(actions.kids)
-      else start(standardStart)
+      if (document.activeElement === regularStart && (key === 'Enter' || key === 'Space')) start(standardStart)
+      else start(actions.kids)
     })
     const onTap = (e: Event) => {
       if (!(e.target instanceof Element) || e.target.closest('a')) return
-      start(kidsStart.contains(e.target) ? actions.kids : standardStart)
+      start(regularStart.contains(e.target) ? standardStart : actions.kids)
     }
     el.addEventListener('click', onTap)
     offIntro = () => (offKey(), el.removeEventListener('click', onTap))

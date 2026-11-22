@@ -42,7 +42,7 @@ export const enemyScale = (g: Game) => {
   return { hp: scale.hp * mods.enemyHp * horde.hp, damage: scale.damage * horde.damage, xp: horde.xp }
 }
 
-const KIDS_BOSS_HP: Partial<Record<EnemyId, number>> = { onix: 130, mewtwo: 320 }
+const KIDS_BOSS_HP: Partial<Record<EnemyId, number>> = { onix: 130, mewtwo: 1280 }
 
 export const spawnEnemy = (g: Game, kind: EnemyId, x: number, y: number, behavior: EnemyBehavior = { kind: 'chase' }) => {
   const def: EnemyDef = ENEMIES[kind]
